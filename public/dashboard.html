@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  />
+
+  <title>Chiller Plant Noise Dashboard</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 24px;
+      background: #0f172a;
+      color: #f8fafc;
+      font-family: Arial, sans-serif;
+    }
+
+    .dashboard {
+      width: 100%;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 28px;
+    }
+
+    .connection-badge {
+      padding: 8px 14px;
+      border-radius: 999px;
+      background: #334155;
+      color: #cbd5e1;
+      font-size: 14px;
+      font-weight: bold;
+    }
+
+    .card {
+      padding: 30px;
+      background: #1e293b;
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgb(0 0 0 / 25%);
+    }
+
+    .main-reading {
+      text-align: center;
+    }
+
+    .level {
+      margin-top: 20px;
+      font-size: clamp(70px, 14vw, 120px);
+      font-weight: bold;
+      line-height: 1;
+    }
+
+    .unit {
+      margin-top: 8px;
+      color: #cbd5e1;
+      font-size: 22px;
+    }
+
+    .condition {
+      margin: 22px 0;
+      color: #94a3b8;
+      font-size: 30px;
+      font-weight: bold;
+    }
+
+    .meter {
+      height: 34px;
+      overflow: hidden;
+      margin-top: 24px;
+      background: #334155;
+      border-radius: 20px;
+    }
+
+    .meter-bar {
+      width: 0%;
+      height: 100%;
+      background: #22c55e;
+      transition:
+        width 0.3s ease,
+        background-color 0.3s ease;
+    }
+
+    .meter-scale {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 7px;
+      color: #64748b;
+      font-size: 12px;
+    }
+
+    .details-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 14px;
+      margin-top: 30px;
+    }
+
+    .detail-card {
+      padding: 18px;
+      background: #0f172a;
+      border-radius: 10px;
+    }
+
+    .detail-label {
+      margin-bottom: 8px;
+      color: #94a3b8;
+      font-size: 14px;
+    }
+
+    .detail-value {
+      font-size: 21px;
+      font-weight: bold;
+    }
+
+    .warning {
+      margin-top: 24px;
+      padding: 14px;
+      border: 1px solid #f59e0b;
+      border-radius: 8px;
+      background: rgb(245 158 11 / 10%);
+      color: #fcd34d;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .offline {
+      opacity: 0.55;
+    }
+
+    @media (max-width: 600px) {
+      .header {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .details-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .card {
+        padding: 22px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <main class="dashboard">
+    <header class="header">
+      <h1>Chiller Plant Noise</h1>
+
+      <div
+        id="connectionBadge"
+        class="connection-badge"
+      >
+        Connecting to server
+      </div>
+    </header>
+
+    <section id="monitorCard" class="card">
+      <div class="main-reading">
+        <div id="level" class="level">--</div>
+        <div class="unit">estimated dB(A)</div>
+
+        <div id="condition" class="condition">
+          Waiting for sensor
+        </div>
+      </div>
+
+      <div class="meter">
+        <div id="meterBar" class="meter-bar"></div>
+      </div>
+
+      <div class="meter-scale">
+        <span>40 dB</span>
+        <span>75 dB</span>
+        <span>110 dB</span>
+      </div>
+
+      <div class="details-grid">
+        <div class="detail-card">
+          <div class="detail-label">Raw microphone level</div>
+          <div class="detail-value">
+            <span id="rawLevel">--</span> dBFS
+          </div>
+        </div>
+
+        <div class="detail-card">
+          <div class="detail-label">Peak microphone level</div>
+          <div class="detail-value">
+            <span id="peakLevel">--</span> dBFS
+          </div>
+        </div>
+
+        <div class="detail-card">
+          <div class="detail-label">Calibration offset</div>
+          <div class="detail-value">
+            <span id="calibrationOffset">--</span> dB
+          </div>
+        </div>
+
+        <div class="detail-card">
+          <div class="detail-label">Sensor device</div>
+          <div id="deviceId" class="detail-value">--</div>
+        </div>
+
+        <div class="detail-card">
+          <div class="detail-label">Last sensor reading</div>
+          <div id="lastUpdate" class="detail-value">--</div>
+        </div>
+
+        <div class="detail-card">
+          <div class="detail-label">Sensor status</div>
+          <div id="sensorStatus" class="detail-value">
+            Waiting
+          </div>
+        </div>
+      </div>
+
+      <div class="warning">
+        The displayed dB(A) value is an uncalibrated phone
+        estimate. Do not use it for occupational-noise compliance
+        or hearing-protection decisions.
+      </div>
+    </section>
+  </main>
+
+  <script src="/socket.io/socket.io.js"></script>
+
+  <script>
+    const SENSOR_TIMEOUT_MS = 5000;
+
+    const socket = io();
+
+    const monitorCard =
+      document.getElementById("monitorCard");
+
+    const connectionBadge =
+      document.getElementById("connectionBadge");
+
+    const levelElement =
+      document.getElementById("level");
+
+    const conditionElement =
+      document.getElementById("condition");
+
+    const meterBarElement =
+      document.getElementById("meterBar");
+
+    const rawLevelElement =
+      document.getElementById("rawLevel");
+
+    const peakLevelElement =
+      document.getElementById("peakLevel");
+
+    const calibrationOffsetElement =
+      document.getElementById("calibrationOffset");
+
+    const deviceIdElement =
+      document.getElementById("deviceId");
+
+    const lastUpdateElement =
+      document.getElementById("lastUpdate");
+
+    const sensorStatusElement =
+      document.getElementById("sensorStatus");
+
+    let lastReadingReceivedAt = 0;
+
+    function clamp(value, minimum, maximum) {
+      return Math.max(minimum, Math.min(maximum, value));
+    }
+
+    function setConnectionStatus(text, colour) {
+      connectionBadge.textContent = text;
+      connectionBadge.style.backgroundColor = colour;
+      connectionBadge.style.color = "#ffffff";
+    }
+
+    function updateMeter(estimatedDbA) {
+      const minimumDisplayDb = 40;
+      const maximumDisplayDb = 110;
+
+      const percentage =
+        ((estimatedDbA - minimumDisplayDb) /
+          (maximumDisplayDb - minimumDisplayDb)) *
+        100;
+
+      meterBarElement.style.width =
+        clamp(percentage, 0, 100) + "%";
+    }
+
+    function updateCondition(estimatedDbA) {
+      let condition;
+      let colour;
+
+      /*
+       * These categories are illustrative because the input
+       * value is an uncalibrated phone estimate.
+       */
+      if (estimatedDbA >= 90) {
+        condition = "Very high";
+        colour = "#ef4444";
+      } else if (estimatedDbA >= 80) {
+        condition = "High";
+        colour = "#f97316";
+      } else if (estimatedDbA >= 70) {
+        condition = "Elevated";
+        colour = "#f59e0b";
+      } else {
+        condition = "Normal";
+        colour = "#22c55e";
+      }
+
+      conditionElement.textContent = condition;
+      conditionElement.style.color = colour;
+      meterBarElement.style.backgroundColor = colour;
+    }
+
+    function showSensorOffline() {
+      sensorStatusElement.textContent = "Offline";
+      sensorStatusElement.style.color = "#ef4444";
+
+      conditionElement.textContent = "No recent readings";
+      conditionElement.style.color = "#94a3b8";
+
+      monitorCard.classList.add("offline");
+    }
+
+    socket.on("connect", () => {
+      setConnectionStatus(
+        "Server connected",
+        "#16a34a"
+      );
+    });
+
+    socket.on("disconnect", () => {
+      setConnectionStatus(
+        "Server disconnected",
+        "#dc2626"
+      );
+    });
+
+    socket.on("connect_error", () => {
+      setConnectionStatus(
+        "Connection error",
+        "#dc2626"
+      );
+    });
+
+    socket.on("noise-reading", (reading) => {
+      const estimatedDbA =
+        Number(reading.estimatedDbA);
+
+      const levelDbfs =
+        Number(reading.levelDbfs);
+
+      const peakDbfs =
+        Number(reading.peakDbfs);
+
+      const calibrationOffset =
+        Number(reading.calibrationOffset);
+
+      if (
+        !Number.isFinite(estimatedDbA) ||
+        !Number.isFinite(levelDbfs) ||
+        !Number.isFinite(peakDbfs)
+      ) {
+        console.warn(
+          "Invalid sensor reading received:",
+          reading
+        );
+
+        return;
+      }
+
+      lastReadingReceivedAt = Date.now();
+
+      monitorCard.classList.remove("offline");
+
+      levelElement.textContent =
+        estimatedDbA.toFixed(1);
+
+      rawLevelElement.textContent =
+        levelDbfs.toFixed(1);
+
+      peakLevelElement.textContent =
+        peakDbfs.toFixed(1);
+
+      calibrationOffsetElement.textContent =
+        Number.isFinite(calibrationOffset)
+          ? calibrationOffset.toFixed(1)
+          : "--";
+
+      deviceIdElement.textContent =
+        reading.deviceId || "Unknown";
+
+      const readingTime =
+        reading.timestamp
+          ? new Date(reading.timestamp)
+          : new Date();
+
+      lastUpdateElement.textContent =
+        readingTime.toLocaleString();
+
+      sensorStatusElement.textContent = "Online";
+      sensorStatusElement.style.color = "#22c55e";
+
+      updateMeter(estimatedDbA);
+      updateCondition(estimatedDbA);
+    });
+
+    setInterval(() => {
+      if (
+        lastReadingReceivedAt > 0 &&
+        Date.now() - lastReadingReceivedAt >
+          SENSOR_TIMEOUT_MS
+      ) {
+        showSensorOffline();
+      }
+    }, 1000);
+  </script>
+</body>
+</html>
