@@ -515,7 +515,7 @@
            * server or Wi-Fi connection is unavailable.
            */
           if (socket.connected) {
-            socket.emit("noise-reading", {
+            socket.emit("phone-reading", {
               deviceId: DEVICE_ID,
               levelDbfs,
               peakDbfs,
