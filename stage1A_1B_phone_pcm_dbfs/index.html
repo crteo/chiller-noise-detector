@@ -83,6 +83,7 @@
       border-radius: 12px;
       border: 1px solid #e5e7eb;
     }
+    #fftCanvas { height: 400px; }
   </style>
 </head>
 <body>
@@ -164,6 +165,20 @@
     <div id="audioSettings" class="small mono">Start the microphone to inspect the requested and reported settings.</div>
   </div>
 
+
+  <h2>Live Frequency Spectrum</h2>
+
+  <canvas
+    id="fftCanvas"
+    width="900"
+    height="400"
+    style="max-width:900px;"
+  ></canvas>
+
+  <div id="dominantFrequency">
+    Dominant frequency: --
+  </div>
+
   <h2>What this page is doing</h2>
   <div class="card small mono">Sound
 ↓
@@ -190,6 +205,6 @@ RMS
 dBFS</div>
 </main>
 
-<script type="module" src="./sensor.js"></script>
+<script type="module" src="./sensor.js?v=20260905-2"></script>
 </body>
 </html>

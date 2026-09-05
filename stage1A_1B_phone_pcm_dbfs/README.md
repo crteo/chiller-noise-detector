@@ -1,3 +1,8 @@
+# Quick Deploy
+
+http://localhost:8080
+cloudflared tunnel --url http://localhost:8080
+
 # Stage 1A / 1B — iPhone microphone → PCM → RMS → dBFS
 
 This package implements the **first measurement stage only**.
