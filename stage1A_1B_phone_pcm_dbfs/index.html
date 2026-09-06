@@ -112,6 +112,14 @@
     .display-card { padding: 22px; }
     .display-card .value { font-size: clamp(28px, 6vw, 46px); }
     .calibration-card { margin-top: 14px; }
+    .remote-card { margin-top: 14px; }
+    .remote-link {
+      display: block;
+      margin-top: 8px;
+      overflow-wrap: anywhere;
+    }
+    body.remote-display .sensor-only { display: none; }
+    body.remote-display main { max-width: 760px; }
     .calibration-row {
       display: flex;
       align-items: center;
@@ -136,12 +144,12 @@
   <h1>Stage 1A / 1B — Phone PCM → dBFS</h1>
   <p class="sub">Educational prototype for understanding the digital measurement chain.</p>
 
-  <div class="controls">
+  <div class="controls sensor-only">
     <button id="startBtn">Start microphone</button>
     <button id="stopBtn" disabled>Stop microphone</button>
   </div>
 
-  <div class="tabs" role="tablist" aria-label="Dashboard views">
+  <div class="tabs sensor-only" role="tablist" aria-label="Dashboard views">
     <button class="tab-button" id="displayTab" role="tab" aria-selected="true" aria-controls="displayPanel">Display</button>
     <button class="tab-button" id="diagnosticsTab" role="tab" aria-selected="false" aria-controls="diagnosticsPanel">Diagnostics</button>
   </div>
@@ -166,13 +174,20 @@
       </div>
     </div>
 
-    <div class="card calibration-card">
+    <div class="card calibration-card sensor-only">
       <label class="label" for="calibrationConstant">Manual calibration constant</label>
       <div class="calibration-row">
         <input id="calibrationConstant" type="number" inputmode="decimal" step="0.1" placeholder="e.g. 120.0" />
         <span>dB</span>
       </div>
       <p id="calibrationStatus" class="small">Enter a calibration constant to calculate dB SPL values.</p>
+    </div>
+
+    <div class="card remote-card" id="remoteSharingCard">
+      <div class="label" id="remoteSharingLabel">Remote display</div>
+      <div id="remoteConnectionStatus" class="value">Preparing…</div>
+      <div id="remoteSessionDetails" class="small"></div>
+      <a id="remoteDisplayLink" class="remote-link sensor-only" href="#"></a>
     </div>
   </section>
 
@@ -307,6 +322,6 @@ PCM → FFT → per-bin A-weighting → energy sum
   </section>
 </main>
 
-<script type="module" src="./sensor.js?v=20260906-1"></script>
+<script type="module" src="./sensor.js?v=20260906-2"></script>
 </body>
 </html>

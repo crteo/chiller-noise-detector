@@ -3,6 +3,17 @@
 http://localhost:8080
 cloudflared tunnel --url http://localhost:8080
 
+For remote-display support, run the included Node server rather than a static
+`python -m http.server` process:
+
+```sh
+npm install
+npm start
+```
+
+Then expose port 8080 through the tunnel. The Node server serves the existing
+dashboard files and the `/ws` WebSocket relay from the same origin.
+
 # Stage 1A / 1B / 1C-1 — iPhone microphone → dBFS and provisional A-weighting
 
 This package implements the unweighted PCM measurement path and a parallel,
@@ -1147,3 +1158,87 @@ constant as `reference dB SPL − measured dBFS`. A single constant assumes the
 phone behaves as a fixed-gain linear system; it does not correct the microphone's
 frequency response or automatic processing. The A-weighted values retain an
 asterisk while their FFT normalization remains provisional.
+
+---
+
+# 29. Read-only remote tablet display
+
+The ordinary page remains the sensor page. It still requests the phone
+microphone, calculates locally, and displays all existing Display and
+Diagnostics values. It now also shows a private remote-display link beneath the
+calibration control.
+
+To connect a tablet:
+
+1. Start the combined dashboard and relay with `npm start`.
+2. If the devices are not using the same localhost, expose the server through
+   the HTTPS tunnel shown above.
+3. Open the tunnel URL on the phone. Do not add query parameters.
+4. Start the microphone normally.
+5. Copy the remote-display link shown on the phone and open it on the tablet.
+6. Confirm the tablet changes from `Connected — waiting for sensor` to `Live`.
+
+The tablet URL contains `mode=display`, a session ID, and a random session
+token. Remote mode does not request microphone access and cannot publish or
+change calibration. Treat its URL as a private viewing link.
+
+Only compact measurement snapshots are relayed, at no more than approximately
+10 updates per second. Raw PCM and FFT arrays are not transmitted. The relay
+keeps only the latest in-memory snapshot for each live session; it does not
+write measurements to disk.
+
+## Remote display validation checklist
+
+### Phone regression
+
+- [ ] Opening the base URL still presents the existing phone dashboard.
+- [ ] Start and Stop microphone continue to work.
+- [ ] dBFS, dBFS(A), dB SPL, and dB SPL(A) continue updating locally.
+- [ ] The Diagnostics tab retains every pre-existing card, graph, spectrum,
+      dominant-frequency value, and browser setting.
+- [ ] Calibration changes update the phone immediately.
+- [ ] Phone measurement continues if the relay becomes unavailable.
+
+### Initial tablet connection
+
+- [ ] The complete link from the phone opens successfully on the tablet.
+- [ ] The tablet does not request microphone permission.
+- [ ] The tablet contains the four level values and remote connection status.
+- [ ] Status becomes `Live` after the first phone measurement arrives.
+- [ ] The four tablet values match the phone to the displayed 0.01 dB precision.
+- [ ] Calibration changes made on the phone appear on the tablet.
+
+### Freshness and reconnection
+
+- [ ] Normal updates keep the reported age below two seconds.
+- [ ] Stopping network traffic produces `Data stale` after two seconds.
+- [ ] A loss lasting more than ten seconds produces `Sensor disconnected`.
+- [ ] Restoring the network reconnects without reloading either page.
+- [ ] Reloading the tablet rejoins the same session and receives the latest
+      in-memory snapshot.
+- [ ] Switching the phone between Wi-Fi and cellular eventually restores live
+      updates.
+
+### Multiple clients and isolation
+
+- [ ] Two tablets can view the same phone simultaneously.
+- [ ] A link with an altered token cannot join the session.
+- [ ] A second publisher using the same session is rejected.
+- [ ] Measurements from a different session never appear on the tablet.
+
+### Measurement status
+
+- [ ] Clipping and microphone state are included in published snapshots.
+- [ ] Locking or backgrounding the phone causes the tablet data to become stale
+      rather than continuing to look live.
+- [ ] Returning to the phone page restores measurement and remote updates where
+      the mobile browser permits AudioContext resumption.
+
+### Cross-location test
+
+- [ ] Put the phone on cellular data and the tablet on unrelated Wi-Fi.
+- [ ] Confirm both use the same public HTTPS tunnel or deployment URL.
+- [ ] Run continuously for at least 15 minutes.
+- [ ] Record any disconnect, stale interval, duplicated reading, or failure to
+      reconnect.
+- [ ] Confirm no microphone audio is audible or transmitted.

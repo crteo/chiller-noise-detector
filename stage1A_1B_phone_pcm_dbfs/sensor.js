@@ -5,6 +5,11 @@ import {
   createAWeightingEnergyWeights
 } from "./a-weighting.js?v=20260906-1";
 
+import {
+  createRemoteConnection,
+  createSessionCredentials
+} from "./remote-client.js?v=20260906-2";
+
 const $ = (id) => document.getElementById(id);
 
 let stream = null;
@@ -19,6 +24,13 @@ let fftMeasurementData = null;
 let aWeightingEnergyWeights = null;
 let latestDbfs = null;
 let latestAWeightedDbfs = null;
+let remoteConnection = null;
+let remoteSequence = 0;
+let lastRemoteMeasurementAt = null;
+let latestClippingFraction = null;
+
+const query = new URLSearchParams(location.search);
+const isRemoteDisplay = query.get("mode") === "display";
 
 const history = [];
 const HISTORY_POINTS = 150;
@@ -66,6 +78,7 @@ function renderDisplayLevels() {
     $("displayDbSplA").textContent = "—";
     $("calibrationStatus").textContent =
       "Enter a calibration constant to calculate dB SPL values.";
+    publishRemoteMeasurement(null);
     return;
   }
 
@@ -89,6 +102,81 @@ function renderDisplayLevels() {
 
   $("calibrationStatus").textContent =
     `Applying ${calibrationConstant >= 0 ? "+" : ""}${calibrationConstant.toFixed(2)} dB to both digital levels.`;
+
+  publishRemoteMeasurement(calibrationConstant);
+}
+
+function publishRemoteMeasurement(calibrationConstant = getCalibrationConstant()) {
+  if (isRemoteDisplay || !remoteConnection) return;
+
+  remoteSequence += 1;
+  remoteConnection.publish({
+    type: "measurement",
+    version: 1,
+    sequence: remoteSequence,
+    measuredAt: Date.now(),
+    values: {
+      dbfs: Number.isFinite(latestDbfs) ? latestDbfs : null,
+      aWeightedDbfs:
+        Number.isFinite(latestAWeightedDbfs)
+          ? latestAWeightedDbfs
+          : null,
+      calibrationConstant,
+      dbSpl: applyCalibrationConstant(latestDbfs, calibrationConstant),
+      dbSplA: applyCalibrationConstant(
+        latestAWeightedDbfs,
+        calibrationConstant
+      )
+    },
+    status: {
+      microphone: audioContext?.state || "stopped",
+      clippingFraction: latestClippingFraction,
+      sampleRate: audioContext?.sampleRate || null
+    }
+  });
+}
+
+function finiteOrNull(value) {
+  return Number.isFinite(value) ? value : null;
+}
+
+function renderRemoteMeasurement(message) {
+  const values = message.values || {};
+  latestDbfs = finiteOrNull(values.dbfs);
+  latestAWeightedDbfs = finiteOrNull(values.aWeightedDbfs);
+
+  const calibration = finiteOrNull(values.calibrationConstant);
+  $("calibrationConstant").value =
+    calibration === null ? "" : String(calibration);
+
+  lastRemoteMeasurementAt =
+    Number.isFinite(message.relayedAt)
+      ? message.relayedAt
+      : Date.now();
+  renderDisplayLevels();
+  updateRemoteFreshness();
+}
+
+function updateRemoteFreshness() {
+  if (!isRemoteDisplay || lastRemoteMeasurementAt === null) return;
+
+  const ageSeconds =
+    (Date.now() - lastRemoteMeasurementAt) / 1000;
+  const status = $("remoteConnectionStatus");
+
+  if (ageSeconds > 10) {
+    status.textContent = "Sensor disconnected";
+    status.className = "value bad";
+  } else if (ageSeconds > 2) {
+    status.textContent = "Data stale";
+    status.className = "value bad";
+  } else {
+    status.textContent = "Live";
+    status.className = "value ok";
+  }
+
+  $("remoteSessionDetails").textContent =
+    `Last update ${ageSeconds.toFixed(1)} seconds ago`;
 }
 
 function selectTab(selectedButton) {
@@ -106,6 +194,118 @@ function selectTab(selectedButton) {
     button.tabIndex = isSelected ? 0 : -1;
     panel.hidden = !isSelected;
   }
+}
+
+function getSensorSessionCredentials() {
+  const storageKey = "chiller-monitor-remote-session-v1";
+
+  try {
+    const saved = JSON.parse(localStorage.getItem(storageKey));
+    if (
+      /^[A-Z0-9]{8}$/.test(saved?.sessionId || "") &&
+      /^[a-f0-9]{36}$/.test(saved?.token || "")
+    ) {
+      return saved;
+    }
+  } catch {
+    // Generate a fresh session when storage is unavailable or invalid.
+  }
+
+  const credentials = createSessionCredentials();
+  try {
+    localStorage.setItem(storageKey, JSON.stringify(credentials));
+  } catch {
+    // The session still works for this page load without persistence.
+  }
+  return credentials;
+}
+
+function connectionStatusHandler({ state, detail }) {
+  const status = $("remoteConnectionStatus");
+
+  if (isRemoteDisplay) {
+    const labels = {
+      connecting: "Connecting…",
+      connected: "Connected — waiting for sensor",
+      reconnecting: "Reconnecting…",
+      disconnected: "Disconnected",
+      error: "Connection error"
+    };
+    status.textContent = labels[state] || state;
+  } else {
+    const labels = {
+      connecting: "Connecting relay…",
+      connected: "Ready to share",
+      reconnecting: "Relay reconnecting…",
+      disconnected: "Relay disconnected",
+      error: "Relay connection error"
+    };
+    status.textContent = labels[state] || state;
+  }
+
+  status.className =
+    `value ${state === "connected" ? "ok" : state === "error" ? "bad" : ""}`.trim();
+
+  if (detail) {
+    $("remoteSessionDetails").textContent = detail;
+  }
+}
+
+function setupRemoteMode() {
+  if (isRemoteDisplay) {
+    document.body.classList.add("remote-display");
+    document.title = "Remote Chiller Noise Display";
+    $("remoteSharingLabel").textContent = "Remote sensor status";
+
+    const sessionId = query.get("session") || "";
+    const token = query.get("token") || "";
+    if (
+      !/^[A-Z0-9]{8}$/.test(sessionId) ||
+      !/^[a-f0-9]{36}$/.test(token)
+    ) {
+      $("remoteConnectionStatus").textContent = "Invalid display link";
+      $("remoteConnectionStatus").className = "value bad";
+      $("remoteSessionDetails").textContent =
+        "Open the complete remote-display link shown on the sensor phone.";
+      return;
+    }
+
+    $("remoteSessionDetails").textContent = `Session ${sessionId}`;
+    remoteConnection = createRemoteConnection({
+      role: "subscriber",
+      sessionId,
+      token,
+      onStatus: connectionStatusHandler,
+      onMeasurement: renderRemoteMeasurement,
+      onSensorStatus: () => {
+        lastRemoteMeasurementAt = null;
+        $("remoteConnectionStatus").textContent = "Sensor disconnected";
+        $("remoteConnectionStatus").className = "value bad";
+      }
+    });
+    setInterval(updateRemoteFreshness, 500);
+    return;
+  }
+
+  const credentials = getSensorSessionCredentials();
+  const displayUrl = new URL(location.href);
+  displayUrl.search = "";
+  displayUrl.searchParams.set("mode", "display");
+  displayUrl.searchParams.set("session", credentials.sessionId);
+  displayUrl.searchParams.set("token", credentials.token);
+
+  const link = $("remoteDisplayLink");
+  link.href = displayUrl.href;
+  link.textContent = displayUrl.href;
+  $("remoteSessionDetails").textContent =
+    `Session ${credentials.sessionId}. Open this link on the tablet.`;
+
+  remoteConnection = createRemoteConnection({
+    role: "publisher",
+    ...credentials,
+    onStatus: connectionStatusHandler
+  });
+  renderDisplayLevels();
 }
 
 /*
@@ -276,6 +476,7 @@ RMS / dBFS DISPLAY
 
 function renderMeasurement(m) {
   latestDbfs = m.dbfs;
+  latestClippingFraction = m.clippingFraction;
   renderDisplayLevels();
   $("sampleRate").textContent =
     `${m.sampleRate} Hz`;
@@ -1069,6 +1270,7 @@ async function stopMicrophone() {
   aWeightingEnergyWeights = null;
   latestDbfs = null;
   latestAWeightedDbfs = null;
+  latestClippingFraction = null;
 
   /*
     Disconnect mute output.
@@ -1227,3 +1429,4 @@ for (const button of tabButtons) {
 
 selectTab($("displayTab"));
 renderDisplayLevels();
+setupRemoteMode();
