@@ -149,6 +149,16 @@
     </div>
 
     <div class="card">
+      <div class="label">Provisional A-weighted digital level</div>
+      <div id="aWeightedDbfs" class="value">—</div>
+    </div>
+
+    <div class="card">
+      <div class="label">A-weighting effect</div>
+      <div id="aWeightingEffect" class="value">—</div>
+    </div>
+
+    <div class="card">
       <div class="label">Clipped samples</div>
       <div id="clipPercent" class="value">—</div>
     </div>
@@ -179,6 +189,14 @@
     Dominant frequency: --
   </div>
 
+  <div class="warning small">
+    <strong>* Provisional digital estimate.</strong> The A-weighting effect is
+    calculated from browser-managed FFT bins and applied to the independently
+    measured time-domain dBFS value. This is not calibrated dBA.
+  </div>
+
+  <div id="spectralDiagnostics" class="card small mono">Start the microphone to calculate the spectral weighting correction.</div>
+
   <h2>What this page is doing</h2>
   <div class="card small mono">Sound
 ↓
@@ -202,9 +220,14 @@ RMS
 ↓
 20 × log10(RMS)
 ↓
-dBFS</div>
+dBFS
+
+In parallel:
+PCM → FFT → per-bin A-weighting → energy sum
+                          ↓
+             provisional dBFS(A)*</div>
 </main>
 
-<script type="module" src="./sensor.js?v=20260905-2"></script>
+<script type="module" src="./sensor.js?v=20260905-3"></script>
 </body>
 </html>

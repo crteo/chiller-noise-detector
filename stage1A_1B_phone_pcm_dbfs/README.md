@@ -3,9 +3,10 @@
 http://localhost:8080
 cloudflared tunnel --url http://localhost:8080
 
-# Stage 1A / 1B — iPhone microphone → PCM → RMS → dBFS
+# Stage 1A / 1B / 1C-1 — iPhone microphone → dBFS and provisional A-weighting
 
-This package implements the **first measurement stage only**.
+This package implements the unweighted PCM measurement path and a parallel,
+provisional FFT-based A-weighting path.
 
 It is intentionally limited to:
 
@@ -40,8 +41,6 @@ It does **not** yet include:
 - ESP32
 - MQTT
 - tablet dashboard
-- FFT
-- A-weighting
 - dB SPL
 - dBA
 - an assumed acoustic calibration constant
@@ -54,7 +53,10 @@ That separation is deliberate. The objective of Stage 1A/1B is to understand and
 
 ```text
 stage1A_1B_phone_pcm_dbfs/
+├── a-weighting.js
+├── a-weighting.test.js
 ├── index.html
+├── package.json
 ├── sensor.js
 ├── pcm-processor.js
 └── README.md
@@ -78,6 +80,9 @@ It shows:
 - recent dBFS history
 - a recent PCM waveform
 - browser-reported microphone settings
+- live frequency spectrum and dominant frequency
+- provisional A-weighted digital level
+- FFT-derived A-weighting effect
 
 ### `sensor.js`
 
@@ -1025,3 +1030,98 @@ dBFS(A)
 Only after understanding that should the project introduce a physical acoustic calibration model.
 
 The ESP32 transport can be added independently after this measurement chain is understood.
+
+---
+
+# 26. Stage 1C-1: provisional FFT A-weighting
+
+The original AudioWorklet RMS/dBFS path is unchanged. In parallel, the browser
+analyser now supplies two views of the same spectrum:
+
+```text
+byte FFT magnitudes  → spectrum drawing and dominant frequency
+float FFT bin levels → A-weighted and unweighted energy sums
+```
+
+For every non-DC FFT bin, `a-weighting.js` calculates the continuous
+A-weighting response and converts it to an energy multiplier. Linear bin
+energies are summed before converting back to decibels. Bins at the analyser's
+minimum level are excluded so a large number of artificial floor values cannot
+create false energy.
+
+The displayed **A-weighting effect** is:
+
+```text
+weighted spectral sum − unweighted spectral sum
+```
+
+The provisional digital estimate applies that relative correction to the
+independently measured time-domain dBFS value:
+
+```text
+provisional dBFS(A) = time-domain dBFS + FFT A-weighting effect
+```
+
+This cancels the analyser's unknown absolute FFT offset, but it does not prove
+that the analyser's internal window and normalization are suitable for an
+absolute measurement. The asterisk in `dBFS(A)*` marks that limitation. It is
+also not dBA because no acoustic reference calibration has been applied.
+
+Run the deterministic mathematics checks with:
+
+```sh
+npm test
+```
+
+# 27. Browser tone validation plan
+
+Use a second device and speaker as the tone source. Do not generate the tone
+through the measuring phone unless speaker-to-microphone coupling is the
+specific system being tested. Keep the speaker, measuring phone, volume,
+orientation and distance fixed for the entire sequence.
+
+Before recording results:
+
+1. Use a quiet room and keep each tone safely below clipping.
+2. Start the microphone and confirm the AudioContext reports `running`.
+3. Confirm the displayed dominant frequency follows the source.
+4. Let each tone settle for at least two seconds.
+5. Record the median or typical reading over about five seconds; do not select
+   a single favorable frame.
+6. Repeat the sequence once to check repeatability.
+
+At a 48 kHz sample rate and FFT size 4096, bin spacing is 11.71875 Hz. The
+dominant-frequency display therefore reports the nearest strong bin rather
+than necessarily the exact generator frequency.
+
+| Source tone | Likely displayed dominant bin at 48 kHz | Expected A-weighting effect | Expected provisional relationship |
+|---:|---:|---:|---|
+| 100 Hz | 93.8 or 105.5 Hz | about −19.1 dB | dBFS(A)* about 19 dB below dBFS |
+| 500 Hz | 503.9 Hz | about −3.25 dB | dBFS(A)* about 3 dB below dBFS |
+| 1 kHz | 996.1 Hz | about 0 dB | dBFS(A)* close to dBFS |
+| 2 kHz | 2003.9 Hz | about +1.20 dB | dBFS(A)* about 1 dB above dBFS |
+
+For a strong, clean single tone, accept approximately ±1 dB around the expected
+weighting effect initially; allow ±2 dB at 100 Hz. Spectral leakage, room noise,
+harmonics, speaker distortion and microphone processing all add energy outside
+the intended tone bin. The theoretical correction applies to a pure tone, so
+the measured correction will move toward the weighting of any significant
+harmonics or background noise.
+
+The absolute unweighted dBFS readings do not need to match between frequencies:
+the source speaker, room and phone microphone all have frequency-dependent
+responses. The primary validation quantity is **A-weighting effect**, not the
+absolute dBFS level.
+
+Investigate a run when:
+
+- dominant frequency does not remain near the source tone;
+- the spectrum shows strong harmonics or unrelated peaks;
+- clipping is nonzero;
+- the 1 kHz correction is not close to 0 dB;
+- results change by more than roughly 1 dB on an immediate repeat; or
+- the browser reports that echo cancellation, noise suppression or automatic
+  gain control remained enabled despite the request.
+
+Passing these tone checks validates the frequency-dependent correction. It does
+not validate absolute FFT normalization or turn the result into calibrated dBA.

@@ -1,4 +1,9 @@
 
+import {
+  calculateSpectralLevels,
+  createAWeightingEnergyWeights
+} from "./a-weighting.js?v=20260905-3";
+
 const $ = (id) => document.getElementById(id);
 
 let stream = null;
@@ -8,7 +13,10 @@ let workletNode = null;
 let muteGain = null;
 
 let analyser = null;
-let fftData = null;
+let fftDisplayData = null;
+let fftMeasurementData = null;
+let aWeightingEnergyWeights = null;
+let latestDbfs = null;
 
 const history = [];
 const HISTORY_POINTS = 150;
@@ -192,6 +200,7 @@ RMS / dBFS DISPLAY
 */
 
 function renderMeasurement(m) {
+  latestDbfs = m.dbfs;
   $("sampleRate").textContent =
     `${m.sampleRate} Hz`;
 
@@ -269,7 +278,9 @@ function drawSpectrum() {
   if (
     !analyser ||
     !audioContext ||
-    !fftData
+    !fftDisplayData ||
+    !fftMeasurementData ||
+    !aWeightingEnergyWeights
   ) {
     return;
   }
@@ -304,7 +315,11 @@ function drawSpectrum() {
     0 maps to minDecibels and 255 maps to maxDecibels.
   */
   analyser.getByteFrequencyData(
-    fftData
+    fftDisplayData
+  );
+
+  analyser.getFloatFrequencyData(
+    fftMeasurementData
   );
 
   const width =
@@ -343,11 +358,11 @@ function drawSpectrum() {
   */
   const maxBin =
     Math.min(
-      fftData.length,
+      fftDisplayData.length,
       Math.floor(
         maxDisplayFrequency /
         nyquist *
-        fftData.length
+        fftDisplayData.length
       )
     );
 
@@ -386,7 +401,7 @@ function drawSpectrum() {
   ) {
 
     const magnitude =
-      fftData[i];
+      fftDisplayData[i];
 
     const db =
       minDisplayDb +
@@ -506,6 +521,38 @@ function drawSpectrum() {
       } Hz`;
   }
 
+  const spectralLevels =
+    calculateSpectralLevels(
+      fftMeasurementData,
+      aWeightingEnergyWeights,
+      analyser.minDecibels
+    );
+
+  if (spectralLevels) {
+    $("aWeightingEffect").textContent =
+      `${spectralLevels.weightingDifferenceDb.toFixed(2)} dB`;
+
+    const provisionalAWeightedDbfs =
+      Number.isFinite(latestDbfs)
+        ? latestDbfs + spectralLevels.weightingDifferenceDb
+        : null;
+
+    $("aWeightedDbfs").textContent =
+      Number.isFinite(provisionalAWeightedDbfs)
+        ? `${provisionalAWeightedDbfs.toFixed(2)} dBFS(A)*`
+        : "—";
+
+    $("spectralDiagnostics").textContent =
+      `Spectral bins used: ${spectralLevels.includedBins}; ` +
+      `raw unweighted sum: ${spectralLevels.unweightedDb.toFixed(2)} dB; ` +
+      `raw A-weighted sum: ${spectralLevels.weightedDb.toFixed(2)} dB`;
+  } else {
+    $("aWeightingEffect").textContent = "—";
+    $("aWeightedDbfs").textContent = "Waiting for spectral data…";
+    $("spectralDiagnostics").textContent =
+      "No FFT bins are above the analyser floor.";
+  }
+
   /*
     OPTIONAL DEBUGGING:
 
@@ -522,13 +569,13 @@ function drawSpectrum() {
 
     console.log(
       "117 Hz:",
-      fftData[10],
+      fftDisplayData[10],
       "586 Hz:",
-      fftData[50],
+      fftDisplayData[50],
       "996 Hz:",
-      fftData[85],
+      fftDisplayData[85],
       "1992 Hz:",
-      fftData[170]
+      fftDisplayData[170]
     );
   */
 }
@@ -704,10 +751,22 @@ async function startMicrophone() {
       2048 frequency bins. Byte magnitudes avoid
       non-finite -Infinity values before audio arrives.
     */
-    fftData =
+    fftDisplayData =
       new Uint8Array(
         analyser
           .frequencyBinCount
+      );
+
+    fftMeasurementData =
+      new Float32Array(
+        analyser.frequencyBinCount
+      );
+
+    aWeightingEnergyWeights =
+      createAWeightingEnergyWeights(
+        audioContext.sampleRate,
+        analyser.fftSize,
+        analyser.frequencyBinCount
       );
 
     /*
@@ -917,13 +976,15 @@ async function stopMicrophone() {
   }
 
   /*
-    Setting fftData to null
+    Clearing the FFT buffers
     causes drawSpectrum()
     to stop on the next
     animation frame.
   */
-  fftData =
-    null;
+  fftDisplayData = null;
+  fftMeasurementData = null;
+  aWeightingEnergyWeights = null;
+  latestDbfs = null;
 
   /*
     Disconnect mute output.
@@ -990,6 +1051,11 @@ async function stopMicrophone() {
       .textContent =
       "Dominant frequency: —";
   }
+
+  $("aWeightingEffect").textContent = "—";
+  $("aWeightedDbfs").textContent = "—";
+  $("spectralDiagnostics").textContent =
+    "Start the microphone to calculate the spectral weighting correction.";
 
   /*
     Clear FFT graph.
