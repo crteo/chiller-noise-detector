@@ -84,6 +84,51 @@
       border: 1px solid #e5e7eb;
     }
     #fftCanvas { height: 400px; }
+    .tabs {
+      display: flex;
+      gap: 6px;
+      margin: 20px 0;
+      padding: 5px;
+      background: #e5e7eb;
+      border-radius: 12px;
+    }
+    .tab-button {
+      flex: 1;
+      background: transparent;
+      color: #4b5563;
+      font-weight: 650;
+    }
+    .tab-button[aria-selected="true"] {
+      background: white;
+      color: #111827;
+      box-shadow: 0 1px 3px rgba(0,0,0,.12);
+    }
+    .tab-panel[hidden] { display: none; }
+    .display-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+    .display-card { padding: 22px; }
+    .display-card .value { font-size: clamp(28px, 6vw, 46px); }
+    .calibration-card { margin-top: 14px; }
+    .calibration-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 9px;
+    }
+    #calibrationConstant {
+      width: 150px;
+      border: 1px solid #d1d5db;
+      border-radius: 9px;
+      padding: 10px 12px;
+      font: inherit;
+      font-variant-numeric: tabular-nums;
+    }
+    @media (max-width: 600px) {
+      .display-grid { grid-template-columns: 1fr; }
+    }
   </style>
 </head>
 <body>
@@ -91,18 +136,53 @@
   <h1>Stage 1A / 1B — Phone PCM → dBFS</h1>
   <p class="sub">Educational prototype for understanding the digital measurement chain.</p>
 
-  <div class="warning">
-    <strong>UNCALIBRATED.</strong>
-    The displayed level is <strong>dBFS</strong>, referenced to digital full scale.
-    It is <strong>not dB SPL and not dBA</strong>.
-  </div>
-
   <div class="controls">
     <button id="startBtn">Start microphone</button>
     <button id="stopBtn" disabled>Stop microphone</button>
   </div>
 
-  <div class="grid">
+  <div class="tabs" role="tablist" aria-label="Dashboard views">
+    <button class="tab-button" id="displayTab" role="tab" aria-selected="true" aria-controls="displayPanel">Display</button>
+    <button class="tab-button" id="diagnosticsTab" role="tab" aria-selected="false" aria-controls="diagnosticsPanel">Diagnostics</button>
+  </div>
+
+  <section class="tab-panel" id="displayPanel" role="tabpanel" aria-labelledby="displayTab">
+    <div class="display-grid">
+      <div class="card display-card">
+        <div class="label">Digital level</div>
+        <div id="displayDbfs" class="value">—</div>
+      </div>
+      <div class="card display-card">
+        <div class="label">A-weighted digital level</div>
+        <div id="displayAWeightedDbfs" class="value">—</div>
+      </div>
+      <div class="card display-card">
+        <div class="label">Sound pressure level</div>
+        <div id="displayDbSpl" class="value">—</div>
+      </div>
+      <div class="card display-card">
+        <div class="label">A-weighted sound pressure level</div>
+        <div id="displayDbSplA" class="value">—</div>
+      </div>
+    </div>
+
+    <div class="card calibration-card">
+      <label class="label" for="calibrationConstant">Manual calibration constant</label>
+      <div class="calibration-row">
+        <input id="calibrationConstant" type="number" inputmode="decimal" step="0.1" placeholder="e.g. 120.0" />
+        <span>dB</span>
+      </div>
+      <p id="calibrationStatus" class="small">Enter a calibration constant to calculate dB SPL values.</p>
+    </div>
+  </section>
+
+  <section class="tab-panel" id="diagnosticsPanel" role="tabpanel" aria-labelledby="diagnosticsTab" hidden>
+    <div class="warning">
+      <strong>UNCALIBRATED.</strong>
+      Digital readings are referenced to full scale. Manually calibrated values are estimates, not a standards-compliant sound-level measurement.
+    </div>
+
+    <div class="grid">
     <div class="card">
       <div class="label">Microphone status</div>
       <div id="micStatus" class="value">Stopped</div>
@@ -162,43 +242,41 @@
       <div class="label">Clipped samples</div>
       <div id="clipPercent" class="value">—</div>
     </div>
-  </div>
+    </div>
 
-  <h2>Recent dBFS history</h2>
-  <canvas id="historyChart" width="900" height="180"></canvas>
+    <h2>Recent dBFS history</h2>
+    <canvas id="historyChart" width="900" height="180"></canvas>
 
-  <h2>Recent PCM waveform</h2>
-  <canvas id="waveform" width="900" height="180"></canvas>
+    <h2>Recent PCM waveform</h2>
+    <canvas id="waveform" width="900" height="180"></canvas>
 
-  <h2>Browser-reported audio settings</h2>
-  <div class="card">
-    <div id="audioSettings" class="small mono">Start the microphone to inspect the requested and reported settings.</div>
-  </div>
+    <h2>Browser-reported audio settings</h2>
+    <div class="card">
+      <div id="audioSettings" class="small mono">Start the microphone to inspect the requested and reported settings.</div>
+    </div>
 
 
-  <h2>Live Frequency Spectrum</h2>
+    <h2>Live Frequency Spectrum</h2>
 
-  <canvas
-    id="fftCanvas"
-    width="900"
-    height="400"
-    style="max-width:900px;"
-  ></canvas>
+    <canvas
+      id="fftCanvas"
+      width="900"
+      height="400"
+      style="max-width:900px;"
+    ></canvas>
 
-  <div id="dominantFrequency">
-    Dominant frequency: --
-  </div>
+    <div id="dominantFrequency">Dominant frequency: --</div>
 
-  <div class="warning small">
-    <strong>* Provisional digital estimate.</strong> The A-weighting effect is
-    calculated from browser-managed FFT bins and applied to the independently
-    measured time-domain dBFS value. This is not calibrated dBA.
-  </div>
+    <div class="warning small">
+      <strong>* Provisional digital estimate.</strong> The A-weighting effect is
+      calculated from browser-managed FFT bins and applied to the independently
+      measured time-domain dBFS value. This is not calibrated dBA.
+    </div>
 
-  <div id="spectralDiagnostics" class="card small mono">Start the microphone to calculate the spectral weighting correction.</div>
+    <div id="spectralDiagnostics" class="card small mono">Start the microphone to calculate the spectral weighting correction.</div>
 
-  <h2>What this page is doing</h2>
-  <div class="card small mono">Sound
+    <h2>What this page is doing</h2>
+    <div class="card small mono">Sound
 ↓
 iPhone microphone
 ↓
@@ -226,8 +304,9 @@ In parallel:
 PCM → FFT → per-bin A-weighting → energy sum
                           ↓
              provisional dBFS(A)*</div>
+  </section>
 </main>
 
-<script type="module" src="./sensor.js?v=20260905-3"></script>
+<script type="module" src="./sensor.js?v=20260906-1"></script>
 </body>
 </html>

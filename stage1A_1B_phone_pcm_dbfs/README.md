@@ -1125,3 +1125,25 @@ Investigate a run when:
 
 Passing these tone checks validates the frequency-dependent correction. It does
 not validate absolute FFT normalization or turn the result into calibrated dBA.
+
+---
+
+# 28. Display and Diagnostics tabs
+
+The dashboard has two views. **Display** contains the four operator-facing
+levels: dBFS, provisional dBFS(A), manually calibrated dB SPL, and manually
+calibrated dB SPL(A). **Diagnostics** retains the raw PCM fields, browser audio
+settings, charts, spectrum, weighting effect, and calculation diagnostics.
+
+The manual calibration uses one additive constant:
+
+```text
+dB SPL    = dBFS    + calibration constant
+dB SPL(A) = dBFS(A) + calibration constant
+```
+
+For a reference source with a known sound pressure level, calculate the initial
+constant as `reference dB SPL − measured dBFS`. A single constant assumes the
+phone behaves as a fixed-gain linear system; it does not correct the microphone's
+frequency response or automatic processing. The A-weighted values retain an
+asterisk while their FFT normalization remains provisional.

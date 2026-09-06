@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import {
+  applyCalibrationConstant,
   aWeightingDb,
   calculateSpectralLevels,
   createAWeightingEnergyWeights
@@ -74,4 +75,10 @@ test("empty and analyser-floor spectra return no result", () => {
     ),
     null
   );
+});
+
+test("manual calibration constant is added to digital levels", () => {
+  assert.equal(applyCalibrationConstant(-42.5, 120), 77.5);
+  assert.equal(applyCalibrationConstant(-50, -2.5), -52.5);
+  assert.equal(applyCalibrationConstant(Number.NaN, 120), null);
 });

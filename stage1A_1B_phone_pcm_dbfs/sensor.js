@@ -1,8 +1,9 @@
 
 import {
+  applyCalibrationConstant,
   calculateSpectralLevels,
   createAWeightingEnergyWeights
-} from "./a-weighting.js?v=20260905-3";
+} from "./a-weighting.js?v=20260906-1";
 
 const $ = (id) => document.getElementById(id);
 
@@ -17,6 +18,7 @@ let fftDisplayData = null;
 let fftMeasurementData = null;
 let aWeightingEnergyWeights = null;
 let latestDbfs = null;
+let latestAWeightedDbfs = null;
 
 const history = [];
 const HISTORY_POINTS = 150;
@@ -31,6 +33,79 @@ function setStatus(text, cls = "") {
   $("micStatus").textContent = text;
   $("micStatus").className =
     `value ${cls}`.trim();
+}
+
+function getCalibrationConstant() {
+  const rawValue =
+    $("calibrationConstant").value.trim();
+
+  if (rawValue === "") return null;
+
+  const value = Number(rawValue);
+  return Number.isFinite(value) ? value : null;
+}
+
+function formatLevel(value, unit) {
+  return Number.isFinite(value)
+    ? `${value.toFixed(2)} ${unit}`
+    : "—";
+}
+
+function renderDisplayLevels() {
+  $("displayDbfs").textContent =
+    formatLevel(latestDbfs, "dBFS");
+
+  $("displayAWeightedDbfs").textContent =
+    formatLevel(latestAWeightedDbfs, "dBFS(A)*");
+
+  const calibrationConstant =
+    getCalibrationConstant();
+
+  if (calibrationConstant === null) {
+    $("displayDbSpl").textContent = "—";
+    $("displayDbSplA").textContent = "—";
+    $("calibrationStatus").textContent =
+      "Enter a calibration constant to calculate dB SPL values.";
+    return;
+  }
+
+  $("displayDbSpl").textContent =
+    formatLevel(
+      applyCalibrationConstant(
+        latestDbfs,
+        calibrationConstant
+      ),
+      "dB SPL"
+    );
+
+  $("displayDbSplA").textContent =
+    formatLevel(
+      applyCalibrationConstant(
+        latestAWeightedDbfs,
+        calibrationConstant
+      ),
+      "dB SPL(A)*"
+    );
+
+  $("calibrationStatus").textContent =
+    `Applying ${calibrationConstant >= 0 ? "+" : ""}${calibrationConstant.toFixed(2)} dB to both digital levels.`;
+}
+
+function selectTab(selectedButton) {
+  const tabButtons =
+    document.querySelectorAll('[role="tab"]');
+
+  for (const button of tabButtons) {
+    const isSelected = button === selectedButton;
+    const panel = $(button.getAttribute("aria-controls"));
+
+    button.setAttribute(
+      "aria-selected",
+      String(isSelected)
+    );
+    button.tabIndex = isSelected ? 0 : -1;
+    panel.hidden = !isSelected;
+  }
 }
 
 /*
@@ -201,6 +276,7 @@ RMS / dBFS DISPLAY
 
 function renderMeasurement(m) {
   latestDbfs = m.dbfs;
+  renderDisplayLevels();
   $("sampleRate").textContent =
     `${m.sampleRate} Hz`;
 
@@ -537,6 +613,9 @@ function drawSpectrum() {
         ? latestDbfs + spectralLevels.weightingDifferenceDb
         : null;
 
+    latestAWeightedDbfs =
+      provisionalAWeightedDbfs;
+
     $("aWeightedDbfs").textContent =
       Number.isFinite(provisionalAWeightedDbfs)
         ? `${provisionalAWeightedDbfs.toFixed(2)} dBFS(A)*`
@@ -546,11 +625,15 @@ function drawSpectrum() {
       `Spectral bins used: ${spectralLevels.includedBins}; ` +
       `raw unweighted sum: ${spectralLevels.unweightedDb.toFixed(2)} dB; ` +
       `raw A-weighted sum: ${spectralLevels.weightedDb.toFixed(2)} dB`;
+
+    renderDisplayLevels();
   } else {
+    latestAWeightedDbfs = null;
     $("aWeightingEffect").textContent = "—";
     $("aWeightedDbfs").textContent = "Waiting for spectral data…";
     $("spectralDiagnostics").textContent =
       "No FFT bins are above the analyser floor.";
+    renderDisplayLevels();
   }
 
   /*
@@ -985,6 +1068,7 @@ async function stopMicrophone() {
   fftMeasurementData = null;
   aWeightingEnergyWeights = null;
   latestDbfs = null;
+  latestAWeightedDbfs = null;
 
   /*
     Disconnect mute output.
@@ -1056,6 +1140,7 @@ async function stopMicrophone() {
   $("aWeightedDbfs").textContent = "—";
   $("spectralDiagnostics").textContent =
     "Start the microphone to calculate the spectral weighting correction.";
+  renderDisplayLevels();
 
   /*
     Clear FFT graph.
@@ -1095,3 +1180,50 @@ $("stopBtn")
     "click",
     stopMicrophone
   );
+
+$("calibrationConstant")
+  .addEventListener(
+    "input",
+    renderDisplayLevels
+  );
+
+const tabButtons =
+  Array.from(
+    document.querySelectorAll('[role="tab"]')
+  );
+
+for (const button of tabButtons) {
+  button.addEventListener(
+    "click",
+    () => selectTab(button)
+  );
+
+  button.addEventListener(
+    "keydown",
+    (event) => {
+      if (
+        event.key !== "ArrowLeft" &&
+        event.key !== "ArrowRight"
+      ) {
+        return;
+      }
+
+      event.preventDefault();
+      const direction =
+        event.key === "ArrowRight" ? 1 : -1;
+      const currentIndex =
+        tabButtons.indexOf(button);
+      const nextButton =
+        tabButtons[
+          (currentIndex + direction + tabButtons.length) %
+          tabButtons.length
+        ];
+
+      selectTab(nextButton);
+      nextButton.focus();
+    }
+  );
+}
+
+selectTab($("displayTab"));
+renderDisplayLevels();

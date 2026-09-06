@@ -100,3 +100,15 @@ export function calculateSpectralLevels(
       weightedDb - unweightedDb
   };
 }
+
+export function applyCalibrationConstant(
+  digitalLevelDbfs,
+  calibrationConstantDb
+) {
+  return (
+    Number.isFinite(digitalLevelDbfs) &&
+    Number.isFinite(calibrationConstantDb)
+  )
+    ? digitalLevelDbfs + calibrationConstantDb
+    : null;
+}
