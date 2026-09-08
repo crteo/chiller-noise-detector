@@ -28,6 +28,11 @@ let remoteConnection = null;
 let remoteSequence = 0;
 let lastRemoteMeasurementAt = null;
 let latestClippingFraction = null;
+let latestSpectrumBands = [];
+let lastRemoteSequence = null;
+
+const remoteHistory = [];
+const REMOTE_HISTORY_MS = 30000;
 
 const query = new URLSearchParams(location.search);
 const isRemoteDisplay = query.get("mode") === "display";
@@ -132,12 +137,31 @@ function publishRemoteMeasurement(calibrationConstant = getCalibrationConstant()
       microphone: audioContext?.state || "stopped",
       clippingFraction: latestClippingFraction,
       sampleRate: audioContext?.sampleRate || null
+    },
+    spectrum: {
+      sampleRate: audioContext?.sampleRate || null,
+      bands: latestSpectrumBands
     }
   });
 }
 
 function finiteOrNull(value) {
   return Number.isFinite(value) ? value : null;
+}
+
+function summarizeSpectrum(data, bandCount = 64) {
+  const bands = new Array(bandCount).fill(0);
+
+  for (let band = 0; band < bandCount; band += 1) {
+    const start = Math.floor(band * data.length / bandCount);
+    const end = Math.max(start + 1, Math.floor((band + 1) * data.length / bandCount));
+
+    for (let index = start; index < end; index += 1) {
+      bands[band] = Math.max(bands[band], data[index]);
+    }
+  }
+
+  return bands;
 }
 
 function renderRemoteMeasurement(message) {
@@ -153,8 +177,156 @@ function renderRemoteMeasurement(message) {
     Number.isFinite(message.relayedAt)
       ? message.relayedAt
       : Date.now();
+
+  if (
+    message.sequence !== lastRemoteSequence &&
+    Number.isFinite(values.dbSplA)
+  ) {
+    lastRemoteSequence = message.sequence;
+    remoteHistory.push({
+      time: lastRemoteMeasurementAt,
+      value: values.dbSplA
+    });
+  }
+
+  const cutoff = Date.now() - REMOTE_HISTORY_MS;
+  while (remoteHistory[0]?.time < cutoff) remoteHistory.shift();
+
+  if (Array.isArray(message.spectrum?.bands)) {
+    latestSpectrumBands = message.spectrum.bands
+      .map(value => Math.max(0, Math.min(255, Number(value) || 0)));
+  }
+
   renderDisplayLevels();
+  renderTabletDashboard(values);
   updateRemoteFreshness();
+}
+
+function renderTabletDashboard(values) {
+  const calibratedAWeighted = finiteOrNull(values.dbSplA);
+  const heroValue = $("tabletDbA");
+  heroValue.innerHTML = Number.isFinite(calibratedAWeighted)
+    ? `${calibratedAWeighted.toFixed(1)}<span class="hero-unit"> dB(A)</span>`
+    : `—<span class="hero-unit"> dB(A)</span>`;
+
+  const noiseStatus = $("tabletNoiseStatus");
+  if (!Number.isFinite(calibratedAWeighted)) {
+    heroValue.className = "hero-value";
+    noiseStatus.className = "noise-status";
+    noiseStatus.textContent = "Status: Waiting for calibrated measurement";
+  } else if (calibratedAWeighted < 50) {
+    heroValue.className = "hero-value level-safe";
+    noiseStatus.className = "noise-status safe";
+    noiseStatus.textContent = "Status: Safe";
+  } else if (calibratedAWeighted <= 80) {
+    heroValue.className = "hero-value level-loud";
+    noiseStatus.className = "noise-status loud";
+    noiseStatus.textContent = "Status: Loud noise";
+  } else {
+    heroValue.className = "hero-value level-harmful";
+    noiseStatus.className = "noise-status harmful";
+    noiseStatus.textContent = "Status: Harmful noise levels";
+  }
+
+  const historyValues = remoteHistory.map(point => point.value);
+  const minimum = historyValues.length ? Math.min(...historyValues) : null;
+  const maximum = historyValues.length ? Math.max(...historyValues) : null;
+  const average = historyValues.length
+    ? historyValues.reduce((sum, value) => sum + value, 0) / historyValues.length
+    : null;
+
+  $("tabletMin").textContent = Number.isFinite(minimum) ? minimum.toFixed(1) : "—";
+  $("tabletAvg").textContent = Number.isFinite(average) ? average.toFixed(1) : "—";
+  $("tabletMax").textContent = Number.isFinite(maximum) ? maximum.toFixed(1) : "—";
+
+  drawTabletFrequencyChart();
+  drawTabletHistoryChart();
+}
+
+function drawTabletFrequencyChart() {
+  const canvas = $("tabletFrequencyChart");
+  const context = canvas.getContext("2d");
+  const width = canvas.width;
+  const height = canvas.height;
+
+  context.clearRect(0, 0, width, height);
+  context.strokeStyle = "#d7dde6";
+  context.setLineDash([5, 6]);
+  for (let x = 0; x <= width; x += width / 4) {
+    context.beginPath();
+    context.moveTo(x, 12);
+    context.lineTo(x, height - 28);
+    context.stroke();
+  }
+  context.setLineDash([]);
+
+  if (latestSpectrumBands.length) {
+    const barWidth = width / latestSpectrumBands.length;
+    for (let index = 0; index < latestSpectrumBands.length; index += 1) {
+      const normalized = latestSpectrumBands[index] / 255;
+      const barHeight = normalized * (height - 42);
+      context.fillStyle = index < latestSpectrumBands.length / 4
+        ? "#22c55e"
+        : "#3b82f6";
+      context.fillRect(
+        index * barWidth,
+        height - 27 - barHeight,
+        Math.max(1, barWidth - 1),
+        barHeight
+      );
+    }
+  }
+
+  context.fillStyle = "#7b8494";
+  context.font = "12px system-ui";
+  context.fillText("0 Hz", 2, height - 7);
+  context.fillText("5 kHz", width * .25 - 16, height - 7);
+  context.fillText("10 kHz", width * .5 - 19, height - 7);
+  context.fillText("20 kHz+", width - 48, height - 7);
+}
+
+function drawTabletHistoryChart() {
+  const canvas = $("tabletHistoryChart");
+  const context = canvas.getContext("2d");
+  const width = canvas.width;
+  const height = canvas.height;
+  const top = 14;
+  const bottom = height - 30;
+  const minDb = 30;
+  const maxDb = 120;
+  const now = Date.now();
+
+  context.clearRect(0, 0, width, height);
+  context.strokeStyle = "#e1e5eb";
+  context.fillStyle = "#7b8494";
+  context.font = "12px system-ui";
+
+  for (const level of [30, 60, 90, 120]) {
+    const y = bottom - (level - minDb) / (maxDb - minDb) * (bottom - top);
+    context.beginPath();
+    context.moveTo(38, y);
+    context.lineTo(width, y);
+    context.stroke();
+    context.fillText(String(level), 5, y + 4);
+  }
+
+  if (remoteHistory.length > 1) {
+    context.beginPath();
+    remoteHistory.forEach((point, index) => {
+      const x = 38 + Math.max(0, 1 - (now - point.time) / REMOTE_HISTORY_MS) * (width - 38);
+      const bounded = Math.max(minDb, Math.min(maxDb, point.value));
+      const y = bottom - (bounded - minDb) / (maxDb - minDb) * (bottom - top);
+      if (index === 0) context.moveTo(x, y);
+      else context.lineTo(x, y);
+    });
+    context.strokeStyle = "#3b82f6";
+    context.lineWidth = 3;
+    context.stroke();
+  }
+
+  context.fillStyle = "#7b8494";
+  context.fillText("−30s", 38, height - 7);
+  context.fillText("Now", width - 25, height - 7);
 }
 
 function updateRemoteFreshness() {
@@ -162,20 +334,21 @@ function updateRemoteFreshness() {
 
   const ageSeconds =
     (Date.now() - lastRemoteMeasurementAt) / 1000;
-  const status = $("remoteConnectionStatus");
+  const status = $("tabletConnectionStatus");
+  const statusBar = $("tabletStatusBar");
 
   if (ageSeconds > 10) {
     status.textContent = "Sensor disconnected";
-    status.className = "value bad";
+    statusBar.className = "mic-status-bar offline";
   } else if (ageSeconds > 2) {
     status.textContent = "Data stale";
-    status.className = "value bad";
+    statusBar.className = "mic-status-bar stale";
   } else {
-    status.textContent = "Live";
-    status.className = "value ok";
+    status.textContent = "Remote microphone connected";
+    statusBar.className = "mic-status-bar";
   }
 
-  $("remoteSessionDetails").textContent =
+  $("tabletSessionDetails").textContent =
     `Last update ${ageSeconds.toFixed(1)} seconds ago`;
 }
 
@@ -221,8 +394,6 @@ function getSensorSessionCredentials() {
 }
 
 function connectionStatusHandler({ state, detail }) {
-  const status = $("remoteConnectionStatus");
-
   if (isRemoteDisplay) {
     const labels = {
       connecting: "Connecting…",
@@ -231,7 +402,11 @@ function connectionStatusHandler({ state, detail }) {
       disconnected: "Disconnected",
       error: "Connection error"
     };
-    status.textContent = labels[state] || state;
+    $("tabletConnectionStatus").textContent = labels[state] || state;
+    $("tabletStatusBar").className =
+      `mic-status-bar ${state === "connected" ? "stale" : "offline"}`;
+    if (detail) $("tabletSessionDetails").textContent = detail;
+    return;
   } else {
     const labels = {
       connecting: "Connecting relay…",
@@ -240,11 +415,11 @@ function connectionStatusHandler({ state, detail }) {
       disconnected: "Relay disconnected",
       error: "Relay connection error"
     };
+    const status = $("remoteConnectionStatus");
     status.textContent = labels[state] || state;
+    status.className =
+      `value ${state === "connected" ? "ok" : state === "error" ? "bad" : ""}`.trim();
   }
-
-  status.className =
-    `value ${state === "connected" ? "ok" : state === "error" ? "bad" : ""}`.trim();
 
   if (detail) {
     $("remoteSessionDetails").textContent = detail;
@@ -263,14 +438,14 @@ function setupRemoteMode() {
       !/^[A-Z0-9]{8}$/.test(sessionId) ||
       !/^[a-f0-9]{36}$/.test(token)
     ) {
-      $("remoteConnectionStatus").textContent = "Invalid display link";
-      $("remoteConnectionStatus").className = "value bad";
-      $("remoteSessionDetails").textContent =
+      $("tabletConnectionStatus").textContent = "Invalid display link";
+      $("tabletStatusBar").className = "mic-status-bar offline";
+      $("tabletSessionDetails").textContent =
         "Open the complete remote-display link shown on the sensor phone.";
       return;
     }
 
-    $("remoteSessionDetails").textContent = `Session ${sessionId}`;
+    $("tabletSessionDetails").textContent = `Session ${sessionId}`;
     remoteConnection = createRemoteConnection({
       role: "subscriber",
       sessionId,
@@ -279,8 +454,8 @@ function setupRemoteMode() {
       onMeasurement: renderRemoteMeasurement,
       onSensorStatus: () => {
         lastRemoteMeasurementAt = null;
-        $("remoteConnectionStatus").textContent = "Sensor disconnected";
-        $("remoteConnectionStatus").className = "value bad";
+        $("tabletConnectionStatus").textContent = "Remote microphone disconnected";
+        $("tabletStatusBar").className = "mic-status-bar offline";
       }
     });
     setInterval(updateRemoteFreshness, 500);
@@ -594,6 +769,9 @@ function drawSpectrum() {
   analyser.getByteFrequencyData(
     fftDisplayData
   );
+
+  latestSpectrumBands =
+    summarizeSpectrum(fftDisplayData);
 
   analyser.getFloatFrequencyData(
     fftMeasurementData

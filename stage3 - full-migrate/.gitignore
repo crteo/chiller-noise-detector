@@ -1,0 +1,5 @@
+node_modules/
+dist/
+.build/
+firmware/noise_monitor/config.h
+.DS_Store

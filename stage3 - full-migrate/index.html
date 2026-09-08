@@ -298,12 +298,12 @@
 </head>
 <body>
 <main>
-  <h1 class="sensor-only">Stage 1A / 1B — Phone PCM → dBFS</h1>
-  <p class="sub sensor-only">Educational prototype for understanding the digital measurement chain.</p>
+  <h1 class="sensor-only">INMP441 → ESP32 → Firebase</h1>
+  <p class="sub sensor-only">Device measurements and diagnostics.</p>
 
   <div class="controls sensor-only">
-    <button id="startBtn">Start microphone</button>
-    <button id="stopBtn" disabled>Stop microphone</button>
+    <button id="startBtn">Connect display</button>
+    <button id="stopBtn" disabled>Pause display</button>
   </div>
 
   <div class="tabs sensor-only" role="tablist" aria-label="Dashboard views">
@@ -383,12 +383,12 @@
 
   <section class="tab-panel" id="diagnosticsPanel" role="tabpanel" aria-labelledby="diagnosticsTab" hidden>
     <div class="warning">
-      <strong>UNCALIBRATED.</strong>
-      Digital readings are referenced to full scale. Manually calibrated values are estimates, not a standards-compliant sound-level measurement.
+      <strong>CALIBRATION STATUS.</strong>
+      Digital readings are referenced to full scale. Acoustic readings are shown only when device calibration is enabled.
     </div>
 
     <div class="card calibration-card">
-      <label class="label" for="calibrationConstant">Manual calibration constant</label>
+      <label class="label" for="calibrationConstant">Device calibration constant</label>
       <div class="calibration-row">
         <input id="calibrationConstant" type="number" inputmode="decimal" step="0.1" placeholder="e.g. 120.0" />
         <span>dB</span>
@@ -408,7 +408,7 @@
     </div>
 
     <div class="card">
-      <div class="label">AudioWorklet block size</div>
+      <div class="label">I2S read block size</div>
       <div id="blockSize" class="value">—</div>
     </div>
 
@@ -443,7 +443,7 @@
     </div>
 
     <div class="card">
-      <div class="label">Provisional A-weighted digital level</div>
+      <div class="label">A-weighted digital level</div>
       <div id="aWeightedDbfs" class="value">—</div>
     </div>
 
@@ -464,9 +464,9 @@
     <h2>Recent PCM waveform</h2>
     <canvas id="waveform" width="900" height="180"></canvas>
 
-    <h2>Browser-reported audio settings</h2>
+    <h2>ESP32 capture settings</h2>
     <div class="card">
-      <div id="audioSettings" class="small mono">Start the microphone to inspect the requested and reported settings.</div>
+      <div id="audioSettings" class="small mono">Waiting for ESP32 diagnostics.</div>
     </div>
 
 
@@ -482,45 +482,22 @@
     <div id="dominantFrequency">Dominant frequency: --</div>
 
     <div class="warning small">
-      <strong>* Provisional digital estimate.</strong> The A-weighting effect is
-      calculated from browser-managed FFT bins and applied to the independently
-      measured time-domain dBFS value. This is not calibrated dBA.
+      <strong>Device DSP.</strong> A-weighting is calculated on the ESP32 using a stateful 48 kHz filter. Acoustic levels require device calibration.
     </div>
 
-    <div id="spectralDiagnostics" class="card small mono">Start the microphone to calculate the spectral weighting correction.</div>
+    <div id="spectralDiagnostics" class="card small mono">Waiting for ESP32 spectrum.</div>
 
     <h2>What this page is doing</h2>
-    <div class="card small mono">Sound
-↓
-iPhone microphone
-↓
-getUserMedia()
-↓
-MediaStream
-↓
-AudioContext
-↓
-AudioWorklet
-↓
-Float32 PCM
-↓
-inspect samples
-↓
-DC removal
-↓
-RMS
-↓
-20 × log10(RMS)
-↓
-dBFS
+    <div class="card small mono">Sound → INMP441 → I2S / ESP32
+PCM → DC removal → RMS / dBFS
+PCM → stateful A-weighting filter → RMS / dBFS(A)
+PCM → Hann-window FFT → spectrum
+Device calibration → Firebase /current → tablet
 
-In parallel:
-PCM → FFT → per-bin A-weighting → energy sum
-                          ↓
-             provisional dBFS(A)*</div>
+Avg is the arithmetic mean of readings in the rolling 30-second window.</div>
   </section>
 </main>
 
-<script type="module" src="./sensor.js?v=20260906-4"></script>
+<script type="module" src="./sensor.js"></script>
 </body>
 </html>

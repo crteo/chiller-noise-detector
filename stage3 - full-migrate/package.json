@@ -1,0 +1,10 @@
+{
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "build": "node scripts/build-web.js",
+    "test": "node --test",
+    "test:dsp": "sh scripts/test-dsp.sh"
+  }
+}

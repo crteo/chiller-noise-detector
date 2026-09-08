@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <title>
+    Chiller Plant Noise Monitor
+  </title>
+
+  <style>
+
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 40px;
+    }
+
+    .value {
+      font-size: 64px;
+      font-weight: bold;
+      margin: 20px 0;
+    }
+
+    .label {
+      font-size: 20px;
+    }
+
+  </style>
+
+</head>
+
+<body>
+
+  <h1>
+    Chiller Plant Noise Monitor
+  </h1>
+
+  <div class="label">
+    Current dBFS
+  </div>
+
+  <div
+    id="dbfs"
+    class="value"
+  >
+    --
+  </div>
+
+  <div class="label">
+    RMS
+  </div>
+
+  <div
+    id="rms"
+    class="value"
+  >
+    --
+  </div>
+
+
+  <script type="module">
+
+    import {
+      initializeApp
+    } from
+      "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
+
+    import {
+      getDatabase,
+      ref,
+      onValue
+    } from
+      "https://www.gstatic.com/firebasejs/12.2.1/firebase-database.js";
+
+
+    const firebaseConfig = {
+
+      databaseURL:
+        "https://science-park-noise-monitoring-default-rtdb.asia-southeast1.firebasedatabase.app/"
+
+    };
+
+
+    const app =
+      initializeApp(firebaseConfig);
+
+
+    const database =
+      getDatabase(app);
+
+
+    const currentRef =
+      ref(database, "current");
+
+
+    onValue(currentRef, (snapshot) => {
+
+      const data =
+        snapshot.val();
+
+
+      if (!data) {
+
+        console.log(
+          "No data received"
+        );
+
+        return;
+
+      }
+
+
+      document
+        .getElementById("dbfs")
+        .textContent =
+        data.dbfs.toFixed(2)
+        + " dBFS";
+
+
+      document
+        .getElementById("rms")
+        .textContent =
+        data.rms.toFixed(6);
+
+
+      console.log(
+        "Realtime update:",
+        data
+      );
+
+    });
+
+  </script>
+
+</body>
+
+</html>

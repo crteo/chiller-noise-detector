@@ -1141,10 +1141,11 @@ not validate absolute FFT normalization or turn the result into calibrated dBA.
 
 # 28. Display and Diagnostics tabs
 
-The dashboard has two views. **Display** contains the four operator-facing
+The phone dashboard has two views. **Display** contains the four operator-facing
 levels: dBFS, provisional dBFS(A), manually calibrated dB SPL, and manually
-calibrated dB SPL(A). **Diagnostics** retains the raw PCM fields, browser audio
-settings, charts, spectrum, weighting effect, and calculation diagnostics.
+calibrated dB SPL(A). **Diagnostics** contains the manual calibration input and
+retains the raw PCM fields, browser audio settings, charts, spectrum, weighting
+effect, and calculation diagnostics.
 
 The manual calibration uses one additive constant:
 
@@ -1165,8 +1166,8 @@ asterisk while their FFT normalization remains provisional.
 
 The ordinary page remains the sensor page. It still requests the phone
 microphone, calculates locally, and displays all existing Display and
-Diagnostics values. It now also shows a private remote-display link beneath the
-calibration control.
+Diagnostics values. It now also shows a private remote-display link on the
+phone's Display tab.
 
 To connect a tablet:
 
@@ -1183,9 +1184,10 @@ token. Remote mode does not request microphone access and cannot publish or
 change calibration. Treat its URL as a private viewing link.
 
 Only compact measurement snapshots are relayed, at no more than approximately
-10 updates per second. Raw PCM and FFT arrays are not transmitted. The relay
-keeps only the latest in-memory snapshot for each live session; it does not
-write measurements to disk.
+10 updates per second. Raw PCM and full FFT arrays are not transmitted; the
+tablet receives a 64-band spectrum summary for visualization. The relay keeps
+only the latest in-memory snapshot for each live session; it does not write
+measurements to disk.
 
 ## Remote display validation checklist
 
