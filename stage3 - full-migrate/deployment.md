@@ -47,7 +47,7 @@ GPIO 36 is input-only, which is appropriate for the microphone data line.
     ".write": false,
     "current": {
       ".read": "auth != null",
-      ".write": "auth != null && auth.uid == 'PASTE_DEVICE_USER_UID_HERE'",
+      ".write": "auth != null && auth.uid == 'H3DcdABoyoakIzjcRyVGUkOhO1h1'",
       ".validate": "newData.hasChildren(['version', 'deviceId', 'bootId', 'sequence', 'measuredAt', 'uploadedAt', 'values', 'status', 'spectrum', 'diagnostics', 'waveform']) && newData.child('version').val() == 2"
     }
   }

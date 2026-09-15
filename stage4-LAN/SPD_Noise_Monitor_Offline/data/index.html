@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#eef3f8">
+  <title>1 SPD Chiller Plant Room - Noise Monitor</title>
+
+  <style>
+    :root {
+      --bg: #eef3f8;
+      --card: #ffffff;
+      --border: #d9e1ea;
+      --text: #1f2937;
+      --muted: #667085;
+      --navy: #17467f;
+      --blue: #2f76f3;
+      --green: #22c55e;
+      --amber: #f59e0b;
+      --orange: #f97316;
+      --red: #ef4444;
+      --shadow: 0 12px 30px rgba(31, 41, 55, 0.08);
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      width: 100%;
+      min-height: 100%;
+      margin: 0;
+    }
+
+    body {
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system,
+        BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    .page {
+      min-height: 100dvh;
+      padding: 12px;
+    }
+
+    .dashboard {
+      width: min(1600px, 100%);
+      min-height: calc(100dvh - 24px);
+      margin: 0 auto;
+      padding: clamp(16px, 2vw, 28px);
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid #e7ebf0;
+    }
+
+    .title {
+      margin: 0;
+      color: var(--navy);
+      font-size: clamp(24px, 3vw, 48px);
+      font-weight: 800;
+      letter-spacing: 0.02em;
+    }
+
+    .brand {
+      color: #667085;
+      font-size: clamp(18px, 2vw, 28px);
+      font-weight: 750;
+      white-space: nowrap;
+    }
+
+    .brand span { color: #17a5b5; }
+
+    .main-grid {
+      flex: 1;
+      display: grid;
+      grid-template-columns: minmax(360px, 0.92fr) minmax(520px, 1.25fr);
+      gap: clamp(20px, 2.5vw, 38px);
+      padding-top: 18px;
+      min-height: 0;
+    }
+
+    .left-panel {
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 15px;
+    }
+
+    .hero {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      padding: 10px;
+    }
+
+    .sound-icon {
+      width: clamp(110px, 11vw, 164px);
+      height: clamp(110px, 11vw, 164px);
+      flex: 0 0 auto;
+      border-radius: 50%;
+      background: linear-gradient(145deg, #3c82f6, #2f66e8);
+      display: grid;
+      place-items: center;
+      box-shadow: 0 14px 30px rgba(47, 118, 243, 0.22);
+      color: white;
+    }
+
+    .sound-icon svg { width: 58%; height: 58%; }
+
+    .hero-value {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .value {
+      font-size: clamp(72px, 9vw, 138px);
+      line-height: 0.9;
+      font-weight: 800;
+      letter-spacing: -0.06em;
+      color: var(--orange);
+      transition: color 0.25s ease;
+    }
+
+    .unit {
+      font-size: clamp(24px, 3vw, 42px);
+      color: #718096;
+      font-weight: 700;
+    }
+
+    .hero-label {
+      margin-top: 20px;
+      font-size: clamp(20px, 2vw, 30px);
+      font-weight: 800;
+    }
+
+    .stats {
+      margin-top: 10px;
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+      color: var(--muted);
+      font-size: clamp(16px, 1.5vw, 21px);
+    }
+
+    .stats strong { color: #2e6be6; }
+
+    .banner {
+      border-radius: 14px;
+      padding: 14px 18px;
+      border: 1px solid;
+      font-size: clamp(16px, 1.5vw, 21px);
+      font-weight: 700;
+    }
+
+    .banner.status {
+      border-color: #fb923c;
+      background: #fff7ed;
+      color: #c2410c;
+    }
+
+    .banner.connection {
+      border-color: #4ade80;
+      background: #f0fdf4;
+      color: #166534;
+    }
+
+    .banner.connection.offline {
+      border-color: #fca5a5;
+      background: #fef2f2;
+      color: #b91c1c;
+    }
+
+    .sub {
+      margin-top: 3px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #475467;
+    }
+
+    .right-panel {
+      min-width: 0;
+      display: grid;
+      grid-template-rows: 1fr 1fr auto;
+      gap: 14px;
+    }
+
+    .chart-card {
+      min-height: 220px;
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      background: #fbfcfe;
+      padding: 13px 16px 10px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .chart-title {
+      margin-bottom: 6px;
+      font-size: 17px;
+      font-weight: 800;
+      color: #5f6b7a;
+    }
+
+    .chart-wrap {
+      position: relative;
+      flex: 1;
+      min-height: 160px;
+    }
+
+    canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    .severity-scale { display: grid; gap: 6px; }
+
+    .severity-bar {
+      height: 14px;
+      border-radius: 999px;
+      background: linear-gradient(
+        90deg,
+        #22c55e 0%,
+        #22c55e 28%,
+        #84cc16 42%,
+        #eab308 58%,
+        #f97316 76%,
+        #ef4444 100%
+      );
+      position: relative;
+    }
+
+    .severity-marker {
+      position: absolute;
+      top: -6px;
+      left: 0;
+      width: 3px;
+      height: 26px;
+      background: #111827;
+      border-radius: 3px;
+      transform: translateX(-50%);
+      transition: left 0.25s ease;
+    }
+
+    .severity-labels {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      font-size: 13px;
+      color: #667085;
+    }
+
+    .severity-labels span:nth-child(2),
+    .severity-labels span:nth-child(3) { text-align: center; }
+    .severity-labels span:last-child { text-align: right; }
+
+    .debug-strip {
+      margin-top: 12px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      color: #667085;
+      font-size: 12px;
+    }
+
+    .debug-chip {
+      background: #f7f9fc;
+      border: 1px solid #e4e7ec;
+      border-radius: 999px;
+      padding: 5px 9px;
+    }
+
+    @media (max-width: 1000px) {
+      .main-grid { grid-template-columns: 1fr; }
+      .hero { justify-content: center; }
+      .right-panel { grid-template-rows: 260px 260px auto; }
+    }
+
+    @media (max-width: 640px) {
+      .page { padding: 6px; }
+      .dashboard { min-height: calc(100dvh - 12px); border-radius: 16px; }
+      .header { align-items: flex-start; }
+      .brand { font-size: 17px; }
+      .hero { flex-direction: column; text-align: center; }
+      .stats { justify-content: center; }
+      .right-panel { grid-template-rows: 230px 230px auto; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="page">
+    <main class="dashboard">
+      <header class="header">
+        <h1 class="title">1 SPD CHILLER PLANT ROOM</h1>
+        <div class="brand"><span>SP</span>group</div>
+      </header>
+
+      <section class="main-grid">
+        <div class="left-panel">
+          <div class="hero">
+            <div class="sound-icon" aria-hidden="true">
+              <svg viewBox="0 0 100 100" fill="none">
+                <path d="M22 42v16h14l19 15V27L36 42H22Z" fill="currentColor"/>
+                <path d="M66 37c5 7 5 19 0 26" stroke="currentColor" stroke-width="7" stroke-linecap="round"/>
+                <path d="M77 28c10 12 10 32 0 44" stroke="currentColor" stroke-width="7" stroke-linecap="round"/>
+              </svg>
+            </div>
+
+            <div>
+              <div class="hero-value">
+                <span id="currentLevel" class="value">--.-</span>
+                <span class="unit">dB(A)</span>
+              </div>
+
+              <div class="hero-label">Local sound level</div>
+
+              <div class="stats">
+                <span>Min: <strong id="minLevel">--.-</strong></span>
+                <span>Avg: <strong id="avgLevel">--.-</strong></span>
+                <span>Max: <strong id="maxLevel">--.-</strong></span>
+              </div>
+            </div>
+          </div>
+
+          <div id="noiseBanner" class="banner status">
+            Status: Waiting for measurement
+          </div>
+
+          <div id="connectionBanner" class="banner connection offline">
+            <div id="connectionText">Connecting to ESP32...</div>
+            <div id="lastUpdate" class="sub">No data received yet</div>
+          </div>
+
+          <div class="debug-strip">
+            <span class="debug-chip">dBFS(A): <strong id="dbfsA">--</strong></span>
+            <span class="debug-chip">Dominant: <strong id="dominantFreq">--</strong> Hz</span>
+            <span class="debug-chip">FFT error: <strong id="fftError">--</strong> dB</span>
+            <span class="debug-chip">Clients: <strong id="clients">--</strong></span>
+          </div>
+        </div>
+
+        <div class="right-panel">
+          <div class="chart-card">
+            <div class="chart-title">Measured frequency spectrum</div>
+            <div class="chart-wrap">
+              <canvas id="spectrumCanvas"></canvas>
+            </div>
+          </div>
+
+          <div class="chart-card">
+            <div class="chart-title">dB(A) history</div>
+            <div class="chart-wrap">
+              <canvas id="historyCanvas"></canvas>
+            </div>
+          </div>
+
+          <div class="severity-scale">
+            <div class="severity-bar">
+              <div id="severityMarker" class="severity-marker"></div>
+            </div>
+
+            <div class="severity-labels">
+              <span>Low</span>
+              <span>Moderate</span>
+              <span>High</span>
+              <span>Very high</span>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    "use strict";
+
+    const THRESHOLDS = {
+      moderate: 70,
+      high: 80,
+      veryHigh: 90
+    };
+
+    const POLL_INTERVAL_MS = 350;
+    const OFFLINE_AFTER_MS = 4000;
+    const HISTORY_POINTS = 60;
+
+    const historyValues = [];
+    let spectrumValues = new Array(32).fill(0);
+    let lastContactTimestamp = 0;
+    let lastResultID = -1;
+
+    const $ = id => document.getElementById(id);
+
+    const currentLevelEl = $("currentLevel");
+    const minLevelEl = $("minLevel");
+    const avgLevelEl = $("avgLevel");
+    const maxLevelEl = $("maxLevel");
+    const noiseBannerEl = $("noiseBanner");
+    const connectionBannerEl = $("connectionBanner");
+    const connectionTextEl = $("connectionText");
+    const lastUpdateEl = $("lastUpdate");
+    const severityMarkerEl = $("severityMarker");
+    const dbfsAEl = $("dbfsA");
+    const dominantFreqEl = $("dominantFreq");
+    const fftErrorEl = $("fftError");
+    const clientsEl = $("clients");
+
+    const spectrumCanvas = $("spectrumCanvas");
+    const historyCanvas = $("historyCanvas");
+
+    function finiteNumber(value, fallback = null) {
+      const number = Number(value);
+      return Number.isFinite(number) ? number : fallback;
+    }
+
+    function prepareCanvas(canvas) {
+      const rect = canvas.getBoundingClientRect();
+      const ratio = Math.max(1, window.devicePixelRatio || 1);
+      const width = Math.max(1, Math.round(rect.width * ratio));
+      const height = Math.max(1, Math.round(rect.height * ratio));
+
+      if (canvas.width !== width || canvas.height !== height) {
+        canvas.width = width;
+        canvas.height = height;
+      }
+
+      const context = canvas.getContext("2d");
+      context.setTransform(ratio, 0, 0, ratio, 0, 0);
+
+      return {
+        context,
+        width: rect.width,
+        height: rect.height
+      };
+    }
+
+    function drawSpectrum() {
+      const { context: ctx, width, height } = prepareCanvas(spectrumCanvas);
+      ctx.clearRect(0, 0, width, height);
+
+      const left = 42;
+      const right = 12;
+      const top = 10;
+      const bottom = 27;
+      const plotWidth = Math.max(1, width - left - right);
+      const plotHeight = Math.max(1, height - top - bottom);
+
+      ctx.strokeStyle = "#dce5ed";
+      ctx.lineWidth = 1;
+
+      for (let row = 0; row <= 4; row++) {
+        const y = top + row * plotHeight / 4;
+        ctx.beginPath();
+        ctx.moveTo(left, y);
+        ctx.lineTo(left + plotWidth, y);
+        ctx.stroke();
+      }
+
+      const count = spectrumValues.length;
+      const slot = plotWidth / count;
+      const gap = Math.max(1, slot * 0.16);
+
+      spectrumValues.forEach((rawValue, index) => {
+        const value = Math.max(0, Math.min(1, finiteNumber(rawValue, 0)));
+        const barHeight = value * plotHeight;
+        const x = left + index * slot + gap / 2;
+        const y = top + plotHeight - barHeight;
+
+        ctx.fillStyle = index < 18 ? "#22c55e" : "#2f76f3";
+        ctx.fillRect(x, y, Math.max(1, slot - gap), barHeight);
+      });
+
+      ctx.fillStyle = "#667085";
+      ctx.font = "12px system-ui, sans-serif";
+      ctx.textBaseline = "top";
+      ctx.textAlign = "left";
+      ctx.fillText("20 Hz", left, top + plotHeight + 7);
+      ctx.textAlign = "center";
+      ctx.fillText("1 kHz", left + plotWidth * 0.566, top + plotHeight + 7);
+      ctx.textAlign = "right";
+      ctx.fillText("20 kHz", left + plotWidth, top + plotHeight + 7);
+    }
+
+    function drawHistory() {
+      const { context: ctx, width, height } = prepareCanvas(historyCanvas);
+      ctx.clearRect(0, 0, width, height);
+
+      const left = 45;
+      const right = 12;
+      const top = 10;
+      const bottom = 27;
+      const plotWidth = Math.max(1, width - left - right);
+      const plotHeight = Math.max(1, height - top - bottom);
+
+      let minimum = 50;
+      let maximum = 100;
+
+      if (historyValues.length) {
+        const dataMin = Math.min(...historyValues);
+        const dataMax = Math.max(...historyValues);
+        minimum = Math.floor((dataMin - 5) / 10) * 10;
+        maximum = Math.ceil((dataMax + 5) / 10) * 10;
+
+        if (maximum - minimum < 20) {
+          maximum = minimum + 20;
+        }
+      }
+
+      ctx.strokeStyle = "#dce5ed";
+      ctx.lineWidth = 1;
+      ctx.fillStyle = "#667085";
+      ctx.font = "12px system-ui, sans-serif";
+      ctx.textAlign = "right";
+      ctx.textBaseline = "middle";
+
+      for (let row = 0; row <= 4; row++) {
+        const fraction = row / 4;
+        const y = top + fraction * plotHeight;
+        const label = maximum - fraction * (maximum - minimum);
+
+        ctx.beginPath();
+        ctx.moveTo(left, y);
+        ctx.lineTo(left + plotWidth, y);
+        ctx.stroke();
+        ctx.fillText(label.toFixed(0), left - 7, y);
+      }
+
+      if (historyValues.length > 1) {
+        ctx.strokeStyle = "#2f76f3";
+        ctx.lineWidth = 3;
+        ctx.lineJoin = "round";
+        ctx.lineCap = "round";
+        ctx.beginPath();
+
+        historyValues.forEach((level, index) => {
+          const x = left + index * plotWidth / Math.max(1, HISTORY_POINTS - 1);
+          const fraction = (level - minimum) / (maximum - minimum);
+          const y = top + plotHeight - fraction * plotHeight;
+
+          if (index === 0) {
+            ctx.moveTo(x, y);
+          } else {
+            ctx.lineTo(x, y);
+          }
+        });
+
+        ctx.stroke();
+      }
+
+      ctx.fillStyle = "#667085";
+      ctx.font = "12px system-ui, sans-serif";
+      ctx.textBaseline = "top";
+      ctx.textAlign = "left";
+      ctx.fillText("Earlier", left, top + plotHeight + 7);
+      ctx.textAlign = "right";
+      ctx.fillText("Now", left + plotWidth, top + plotHeight + 7);
+    }
+
+    function noiseState(level) {
+      if (level < THRESHOLDS.moderate) {
+        return {
+          text: "Status: Low noise",
+          color: "#16a34a",
+          background: "#f0fdf4",
+          border: "#4ade80"
+        };
+      }
+
+      if (level < THRESHOLDS.high) {
+        return {
+          text: "Status: Moderate noise",
+          color: "#a16207",
+          background: "#fefce8",
+          border: "#facc15"
+        };
+      }
+
+      if (level < THRESHOLDS.veryHigh) {
+        return {
+          text: "Status: Loud noise",
+          color: "#c2410c",
+          background: "#fff7ed",
+          border: "#fb923c"
+        };
+      }
+
+      return {
+        text: "Status: Very high noise",
+        color: "#b91c1c",
+        background: "#fef2f2",
+        border: "#f87171"
+      };
+    }
+
+    function updateNoiseState(level) {
+      const state = noiseState(level);
+
+      noiseBannerEl.textContent = state.text;
+      noiseBannerEl.style.color = state.color;
+      noiseBannerEl.style.background = state.background;
+      noiseBannerEl.style.borderColor = state.border;
+      currentLevelEl.style.color = state.color;
+
+      const percentage = Math.max(0, Math.min(100, ((level - 50) / 50) * 100));
+      severityMarkerEl.style.left = `${percentage}%`;
+    }
+
+    function updateHistory(level) {
+      historyValues.push(level);
+
+      while (historyValues.length > HISTORY_POINTS) {
+        historyValues.shift();
+      }
+
+      const minimum = Math.min(...historyValues);
+      const maximum = Math.max(...historyValues);
+      const average = historyValues.reduce((sum, value) => sum + value, 0) /
+        historyValues.length;
+
+      minLevelEl.textContent = minimum.toFixed(1);
+      avgLevelEl.textContent = average.toFixed(1);
+      maxLevelEl.textContent = maximum.toFixed(1);
+
+      drawHistory();
+    }
+
+    function setConnected() {
+      connectionBannerEl.classList.remove("offline");
+      connectionTextEl.textContent = "Connected directly to ESP32";
+    }
+
+    function setOffline() {
+      connectionBannerEl.classList.add("offline");
+      connectionTextEl.textContent = "ESP32 data unavailable";
+    }
+
+    function updateLastUpdateText() {
+      if (!lastContactTimestamp) {
+        lastUpdateEl.textContent = "No data received yet";
+        return;
+      }
+
+      const age = Date.now() - lastContactTimestamp;
+
+      if (age > OFFLINE_AFTER_MS) {
+        setOffline();
+      } else {
+        setConnected();
+      }
+
+      lastUpdateEl.textContent = `Last local response ${(age / 1000).toFixed(1)} seconds ago`;
+    }
+
+    async function fetchMeasurement() {
+      try {
+        const response = await fetch("/data", { cache: "no-store" });
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+
+        const data = await response.json();
+        lastContactTimestamp = Date.now();
+        clientsEl.textContent = finiteNumber(data.connected_clients, "--");
+
+        if (!data.ready) {
+          connectionTextEl.textContent = "Connected; waiting for first measurement";
+          updateLastUpdateText();
+          return;
+        }
+
+        const level = finiteNumber(data.estimated_dba);
+        const resultID = finiteNumber(data.result_id);
+
+        if (level === null || resultID === null) {
+          throw new Error("Invalid measurement payload");
+        }
+
+        dbfsAEl.textContent = finiteNumber(data.dbfsA, -120).toFixed(2);
+        dominantFreqEl.textContent = finiteNumber(data.dominant_frequency, 0).toFixed(1);
+        fftErrorEl.textContent = finiteNumber(data.fft_error_db, 0).toFixed(4);
+
+        if (Array.isArray(data.spectrum) && data.spectrum.length) {
+          spectrumValues = data.spectrum.slice(0, 32).map(value => finiteNumber(value, 0));
+
+          while (spectrumValues.length < 32) {
+            spectrumValues.push(0);
+          }
+
+          drawSpectrum();
+        }
+
+        if (resultID !== lastResultID) {
+          lastResultID = resultID;
+          currentLevelEl.textContent = level.toFixed(1);
+          updateNoiseState(level);
+          updateHistory(level);
+        }
+
+        setConnected();
+        updateLastUpdateText();
+      } catch (error) {
+        console.error("Local ESP32 request failed:", error);
+        setOffline();
+      }
+    }
+
+    function redrawCharts() {
+      drawSpectrum();
+      drawHistory();
+    }
+
+    window.addEventListener("resize", redrawCharts);
+
+    drawSpectrum();
+    drawHistory();
+    fetchMeasurement();
+    setInterval(fetchMeasurement, POLL_INTERVAL_MS);
+    setInterval(updateLastUpdateText, 250);
+  </script>
+</body>
+</html>
+

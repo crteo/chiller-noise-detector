@@ -9,6 +9,7 @@ For remote-display support, run the included Node server rather than a static
 ```sh
 npm install
 npm start
+
 ```
 
 Then expose port 8080 through the tunnel. The Node server serves the existing

@@ -10,8 +10,8 @@
 // WIFI
 // ======================================================
 
-const char* ssid = "Teo Family";
-const char* password = "XegKvUFFQsEexRu";
+const char* ssid = "SPD_MESH";
+const char* password = "Fivespd1234!";
 
 // ======================================================
 // FIREBASE
