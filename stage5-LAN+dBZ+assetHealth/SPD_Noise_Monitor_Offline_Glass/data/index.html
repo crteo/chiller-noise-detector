@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#050607">
+  <title>1 SPD Chiller Plant Room</title>
+  <style>
+    :root{--bg:#050607;--glass:rgba(255,255,255,.055);--line:rgba(255,255,255,.11);--text:#f5f7f8;--muted:#91989f;--low:#4ade80;--moderate:#fbbf24;--high:#fb5a5a;--state:var(--moderate)}
+    *{box-sizing:border-box}html,body{width:100%;height:100%;margin:0;overflow:hidden}
+    body{color:var(--text);background:radial-gradient(circle at 14% 8%,rgba(255,255,255,.075),transparent 27%),radial-gradient(circle at 88% 85%,rgba(70,79,90,.2),transparent 31%),linear-gradient(145deg,#030405,#0a0c0e 52%,#030405);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;-webkit-font-smoothing:antialiased}
+    body:before{content:"";position:fixed;inset:0;pointer-events:none;background-image:linear-gradient(rgba(255,255,255,.012) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.012) 1px,transparent 1px);background-size:42px 42px;mask-image:linear-gradient(to bottom,#000,transparent 90%)}
+    .shell{position:relative;width:100%;height:100dvh;min-height:520px;padding:clamp(16px,2.1vw,30px);display:grid;grid-template-rows:auto minmax(0,1fr);gap:clamp(14px,1.7vw,24px)}
+    .glass{background:var(--glass);border:1px solid var(--line);box-shadow:inset 0 1px 0 rgba(255,255,255,.055),0 24px 65px rgba(0,0,0,.34);backdrop-filter:blur(22px) saturate(120%);-webkit-backdrop-filter:blur(22px) saturate(120%)}
+    .topbar{min-height:clamp(74px,9vh,104px);padding:12px clamp(18px,2.2vw,32px);border-radius:24px;display:flex;align-items:center;justify-content:space-between;gap:28px}
+    .eyebrow,.panel-label{color:var(--muted);font-size:clamp(10px,.9vw,14px);font-weight:700;letter-spacing:.17em;text-transform:uppercase}.eyebrow{margin-bottom:7px;color:#737a82}
+    h1{margin:0;color:#f7f8f9;font-size:clamp(24px,3vw,46px);font-weight:650;letter-spacing:-.035em;line-height:1;white-space:nowrap}
+    .logo-wrap{width:clamp(125px,15vw,220px);height:clamp(44px,6vh,68px);flex:0 0 auto;display:grid;place-items:center end}.logo-wrap img{display:block;max-width:100%;max-height:100%;object-fit:contain;object-position:right center}.logo-fallback{display:none;color:#e8ebed;font-size:clamp(17px,1.8vw,25px);font-weight:680;letter-spacing:.05em}
+    .content{min-height:0;display:grid;grid-template-columns:minmax(410px,.84fr) minmax(520px,1.16fr);gap:clamp(14px,1.7vw,24px)}
+    .reading,.history{min-height:0;border-radius:28px;overflow:hidden}.reading{padding:clamp(22px,3vw,46px);display:flex;flex-direction:column}
+    .level-row{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;gap:clamp(10px,1vw,18px);font-variant-numeric:tabular-nums}
+    .level{color:var(--state);font-size:clamp(104px,14vw,220px);font-weight:680;letter-spacing:-.09em;line-height:.82;text-shadow:0 0 42px color-mix(in srgb,var(--state) 22%,transparent);transition:color .28s ease,text-shadow .28s ease}.unit{margin-top:clamp(48px,8vh,95px);color:#7d848c;font-size:clamp(22px,2.7vw,40px);font-weight:580;letter-spacing:-.03em}
+    .status-card{padding:clamp(16px,1.7vw,23px);border:1px solid color-mix(in srgb,var(--state) 32%,transparent);border-radius:20px;background:color-mix(in srgb,var(--state) 7%,rgba(255,255,255,.025));transition:.28s ease}.status-line{display:flex;align-items:center;gap:12px}.state-dot{width:10px;height:10px;flex:0 0 auto;border-radius:50%;background:var(--state);box-shadow:0 0 18px color-mix(in srgb,var(--state) 65%,transparent)}
+    .status-name{color:var(--state);font-size:clamp(18px,1.8vw,27px);font-weight:680;letter-spacing:-.025em}.action{margin:9px 0 0 22px;color:#c8ccd0;font-size:clamp(13px,1.25vw,18px);line-height:1.35}
+    .connection{margin-top:clamp(15px,1.6vw,22px);display:flex;align-items:center;gap:9px;color:#8f969d;font-size:clamp(12px,1.05vw,15px);font-weight:600;letter-spacing:.035em}.connection-dot{width:8px;height:8px;border-radius:50%;background:#676d73}.connection.connected .connection-dot{background:var(--low);box-shadow:0 0 13px rgba(74,222,128,.7)}.connection.disconnected .connection-dot{background:var(--high);box-shadow:0 0 13px rgba(251,90,90,.62)}.last-disconnect{margin:7px 0 0 17px;color:#6f767d;font-size:clamp(11px,.95vw,14px);font-variant-numeric:tabular-nums}
+    .history{padding:clamp(22px,2.6vw,38px);display:grid;grid-template-rows:auto minmax(0,1fr) auto}.history-heading{display:flex;align-items:flex-end;justify-content:space-between;gap:18px}.history h2{margin:7px 0 0;color:#f2f4f5;font-size:clamp(22px,2.3vw,34px);font-weight:620;letter-spacing:-.035em}.window-label{padding-bottom:4px;color:#70777e;font-size:clamp(11px,1vw,14px);white-space:nowrap}
+    .chart-wrap{position:relative;min-height:0;margin:clamp(16px,2vh,27px) 0 8px}canvas{position:absolute;inset:0;width:100%;height:100%}.legend{display:flex;align-items:center;gap:clamp(18px,2vw,30px);padding-top:13px;border-top:1px solid rgba(255,255,255,.065);color:#858c93;font-size:clamp(10px,.9vw,13px)}.legend-item{display:flex;align-items:center;gap:7px}.legend-mark{width:18px;height:3px;border-radius:20px}
+    @supports not (backdrop-filter:blur(1px)){.glass{background:rgba(18,20,22,.94)}}
+    @media (orientation:landscape) and (max-height:620px){.shell{padding:12px;gap:12px}.topbar{min-height:66px;border-radius:19px}.reading,.history{border-radius:22px}.reading{padding:20px 26px}.history{padding:19px 24px}.level{font-size:clamp(90px,13vw,174px)}.unit{margin-top:42px}.status-card{padding:14px 17px}.connection{margin-top:11px}.chart-wrap{margin-top:12px}}
+    @media(max-width:900px){html,body{overflow:auto}.shell{height:auto;min-height:100dvh}.content{grid-template-columns:1fr}.reading{min-height:520px}.history{min-height:430px}}
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar glass">
+      <div><div class="eyebrow">Live acoustic monitoring</div><h1>1 SPD Chiller Plant Room</h1></div>
+      <div class="logo-wrap"><img src="/logo.png" alt="Company logo" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"><div class="logo-fallback">SP GROUP</div></div>
+    </header>
+    <section class="content">
+      <article class="reading glass">
+        <div class="panel-label">Current sound level</div>
+        <div class="level-row"><div id="currentLevel" class="level">--.-</div><div class="unit">dB(A)</div></div>
+        <div class="status-card"><div class="status-line"><span class="state-dot"></span><span id="statusName" class="status-name">Waiting for reading</span></div><p id="actionText" class="action">Monitoring will begin when the first measurement arrives.</p></div>
+        <div id="connection" class="connection disconnected"><span class="connection-dot"></span><span id="connectionText">Sensor disconnected</span></div>
+        <div id="lastDisconnect" class="last-disconnect">Disconnect detected at: Never</div>
+      </article>
+      <article class="history glass">
+        <div class="history-heading"><div><div class="panel-label">Sound level trend</div><h2>dB(A) history</h2></div><div class="window-label">Latest 60 readings</div></div>
+        <div class="chart-wrap"><canvas id="historyCanvas" aria-label="Sound level history chart"></canvas></div>
+        <div class="legend"><div class="legend-item"><span class="legend-mark" style="background:var(--low)"></span><span>Low &lt; 70</span></div><div class="legend-item"><span class="legend-mark" style="background:var(--moderate)"></span><span>Moderate 70–79.9</span></div><div class="legend-item"><span class="legend-mark" style="background:var(--high)"></span><span>High ≥ 80</span></div></div>
+      </article>
+    </section>
+  </main>
+  <script>
+    "use strict";
+    const POLL_MS=350,FETCH_TIMEOUT_MS=2500,OFFLINE_MS=4000,LIMIT=60,LAST_DISCONNECT_KEY="spdLastDisconnectAt",C={low:"#4ade80",moderate:"#fbbf24",high:"#fb5a5a"};
+    const history=[];let lastID=null,lastContact=0,busy=false,stateKey="moderate",connectionState=null,lastDisconnectAt=loadLastDisconnect();
+    const levelEl=document.getElementById("currentLevel"),statusEl=document.getElementById("statusName"),actionEl=document.getElementById("actionText"),connectionEl=document.getElementById("connection"),connectionText=document.getElementById("connectionText"),lastDisconnectEl=document.getElementById("lastDisconnect"),canvas=document.getElementById("historyCanvas");
+    function classify(v){if(v<70)return{key:"low",label:"Low noise",action:"Continue normal monitoring."};if(v<80)return{key:"moderate",label:"Moderate noise",action:"Ear plugs recommended."};return{key:"high",label:"High noise",action:"Ear plugs recommended. Avoid prolonged exposure."}}
+    function updateReading(v){const s=classify(v);stateKey=s.key;document.documentElement.style.setProperty("--state",C[s.key]);levelEl.textContent=v.toFixed(1);statusEl.textContent=s.label;actionEl.textContent=s.action}
+    function loadLastDisconnect(){try{const value=Number(localStorage.getItem(LAST_DISCONNECT_KEY));return Number.isFinite(value)&&value>0?value:null}catch(e){console.warn("Could not load the last disconnect time.",e);return null}}
+    function renderLastDisconnect(){lastDisconnectEl.textContent="Disconnect detected at: "+(lastDisconnectAt===null?"Never":new Date(lastDisconnectAt).toLocaleString())}
+    function recordDisconnect(){lastDisconnectAt=Date.now();try{localStorage.setItem(LAST_DISCONNECT_KEY,String(lastDisconnectAt))}catch(e){console.warn("Could not save the last disconnect time.",e)}renderLastDisconnect()}
+    function setConnection(ok){if(connectionState===true&&!ok)recordDisconnect();connectionState=ok;connectionEl.classList.toggle("connected",ok);connectionEl.classList.toggle("disconnected",!ok);connectionText.textContent=ok?"Sensor connected":"Sensor disconnected"}
+    function prep(){const r=canvas.getBoundingClientRect(),d=Math.max(1,devicePixelRatio||1),w=Math.max(1,Math.round(r.width*d)),h=Math.max(1,Math.round(r.height*d));if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h}const x=canvas.getContext("2d");x.setTransform(d,0,0,d,0,0);return{x,w:r.width,h:r.height}}
+    function draw(){const{ x,w,h}=prep();x.clearRect(0,0,w,h);const p={l:48,r:14,t:18,b:30},pw=Math.max(1,w-p.l-p.r),ph=Math.max(1,h-p.t-p.b);let lo=50,hi=100;if(history.length){lo=Math.floor((Math.min(...history)-5)/10)*10;hi=Math.ceil((Math.max(...history)+5)/10)*10;if(hi-lo<20)hi=lo+20}const yFor=v=>p.t+ph-((v-lo)/(hi-lo))*ph;x.font="12px -apple-system,sans-serif";x.textBaseline="middle";x.textAlign="right";for(let i=0;i<=4;i++){const f=i/4,y=p.t+f*ph,v=hi-f*(hi-lo);x.strokeStyle="rgba(255,255,255,.07)";x.lineWidth=1;x.beginPath();x.moveTo(p.l,y);x.lineTo(p.l+pw,y);x.stroke();x.fillStyle="#6f767d";x.fillText(v.toFixed(0),p.l-10,y)}[{v:70,c:"rgba(251,191,36,.24)"},{v:80,c:"rgba(251,90,90,.24)"}].forEach(t=>{if(t.v<=lo||t.v>=hi)return;const y=yFor(t.v);x.strokeStyle=t.c;x.setLineDash([5,6]);x.beginPath();x.moveTo(p.l,y);x.lineTo(p.l+pw,y);x.stroke();x.setLineDash([])});if(history.length>1){const pts=history.map((v,i)=>({x:p.l+i/Math.max(1,LIMIT-1)*pw,y:yFor(v)})),g=x.createLinearGradient(0,p.t,0,p.t+ph);g.addColorStop(0,C[stateKey]+"38");g.addColorStop(1,C[stateKey]+"00");x.beginPath();x.moveTo(pts[0].x,p.t+ph);pts.forEach(q=>x.lineTo(q.x,q.y));x.lineTo(pts.at(-1).x,p.t+ph);x.closePath();x.fillStyle=g;x.fill();x.beginPath();pts.forEach((q,i)=>i?x.lineTo(q.x,q.y):x.moveTo(q.x,q.y));x.strokeStyle=C[stateKey];x.lineWidth=3;x.lineJoin="round";x.lineCap="round";x.shadowColor=C[stateKey]+"70";x.shadowBlur=12;x.stroke();x.shadowBlur=0;const q=pts.at(-1);x.beginPath();x.arc(q.x,q.y,4,0,Math.PI*2);x.fillStyle=C[stateKey];x.fill()}x.fillStyle="#666d74";x.font="11px -apple-system,sans-serif";x.textBaseline="top";x.textAlign="left";x.fillText("Earlier",p.l,p.t+ph+11);x.textAlign="right";x.fillText("Now",p.l+pw,p.t+ph+11)}
+    async function poll(){if(busy)return;busy=true;const controller=new AbortController(),timeoutID=setTimeout(()=>controller.abort(),FETCH_TIMEOUT_MS);try{const r=await fetch("/data",{cache:"no-store",signal:controller.signal});if(!r.ok)throw Error(`HTTP ${r.status}`);const d=await r.json();lastContact=Date.now();setConnection(true);if(!d.ready)return;const v=Number(d.estimated_dba),id=Number(d.result_id);if(!Number.isFinite(v)||!Number.isFinite(id))throw Error("Invalid payload");if(id!==lastID){lastID=id;updateReading(v);history.push(v);while(history.length>LIMIT)history.shift();draw()}}catch(e){if(e.name!=="AbortError")console.error(e)}finally{clearTimeout(timeoutID);busy=false}}
+    function check(){setConnection(lastContact>0&&Date.now()-lastContact<=OFFLINE_MS)}
+    addEventListener("resize",draw);renderLastDisconnect();draw();poll();setInterval(poll,POLL_MS);setInterval(check,500);
+  </script>
+</body>
+</html>
