@@ -40,16 +40,18 @@ struct NodeState
   double dominantFrequency;
   double windowEnergySum;
   uint16_t windowSampleCount;
+  double lastWindowDBA;
+  bool contributedLastWindow;
 };
 
 NodeState nodes[MAX_NODES] = {
   {
     NODE_1_ID, NODE_1_NAME, false, false,
-    0, 0, 0, 0, 0, 0, 0, NAN, NAN, NAN, 0.0, 0
+    0, 0, 0, 0, 0, 0, 0, NAN, NAN, NAN, 0.0, 0, NAN, false
   },
   {
     NODE_2_ID, NODE_2_NAME, false, false,
-    0, 0, 0, 0, 0, 0, 0, NAN, NAN, NAN, 0.0, 0
+    0, 0, 0, 0, 0, 0, 0, NAN, NAN, NAN, 0.0, 0, NAN, false
   }
 };
 
@@ -119,10 +121,15 @@ void publishAggregateWindowLocked(uint32_t now)
 
   for (size_t i = 0; i < CONFIGURED_NODE_COUNT; i++)
   {
+    nodes[i].contributedLastWindow = false;
+
     if (nodes[i].online && nodes[i].windowSampleCount > 0)
     {
-      nodeMeanEnergySum +=
+      const double nodeMeanEnergy =
         nodes[i].windowEnergySum / nodes[i].windowSampleCount;
+      nodeMeanEnergySum += nodeMeanEnergy;
+      nodes[i].lastWindowDBA = 10.0 * log10(nodeMeanEnergy);
+      nodes[i].contributedLastWindow = true;
       contributingNodes++;
     }
 
@@ -356,6 +363,16 @@ void sendStatus()
       item["age_ms"] = now - nodes[i].receivedAtMs;
       item["sequence"] = nodes[i].sequence;
       item["boot_id"] = nodes[i].bootID;
+      if (nodes[i].contributedLastWindow)
+      {
+        item["window_dba"] = nodes[i].lastWindowDBA;
+      }
+      else
+      {
+        item["window_dba"] = nullptr;
+      }
+
+      item["contributed"] = nodes[i].contributedLastWindow;
     }
     else
     {
@@ -363,6 +380,8 @@ void sendStatus()
       item["age_ms"] = nullptr;
       item["sequence"] = 0;
       item["boot_id"] = 0;
+      item["window_dba"] = nullptr;
+      item["contributed"] = false;
     }
   }
 
@@ -385,6 +404,7 @@ void sendFile(const char* path, const char* contentType)
     return;
   }
 
+  server.sendHeader("Cache-Control", "no-store, no-cache, must-revalidate");
   server.streamFile(file, contentType);
   file.close();
 }

@@ -16,22 +16,24 @@
     .eyebrow,.panel-label{color:var(--muted);font-size:clamp(10px,.82vw,13px);font-weight:700;letter-spacing:.17em;text-transform:uppercase}.eyebrow{margin-bottom:6px;color:#737a82}
     h1{margin:0;color:#f7f8f9;font-size:clamp(22px,2.6vw,42px);font-weight:650;letter-spacing:-.035em;line-height:1;white-space:nowrap}
     .logo-wrap{width:clamp(120px,14vw,210px);height:clamp(40px,5.5vh,64px);flex:0 0 auto;display:grid;place-items:center end}.logo-wrap img{display:block;max-width:100%;max-height:100%;object-fit:contain;object-position:right center}.logo-fallback{display:none;color:#e8ebed;font-size:clamp(16px,1.7vw,24px);font-weight:680;letter-spacing:.05em}
-    .content{min-height:0;display:grid;grid-template-columns:minmax(540px,2.15fr) minmax(290px,1fr);gap:clamp(12px,1.4vw,20px)}
-    .main-card,.nodes-card{min-height:0;border-radius:27px;overflow:hidden}
-    .main-card{padding:clamp(20px,2.4vw,38px);display:grid;grid-template-rows:auto minmax(155px,.9fr) auto minmax(150px,.65fr)}
+    .content{min-height:0;display:grid;grid-template-rows:minmax(0,1fr) auto;gap:clamp(12px,1.4vw,20px)}
+    .top-row{min-height:0;display:grid;grid-template-columns:minmax(230px,1fr) minmax(0,3fr);gap:clamp(12px,1.4vw,20px)}
+    .reading-card,.analysis-card,.nodes-card{min-height:0;border-radius:27px;overflow:hidden}
+    .reading-card{padding:clamp(20px,2vw,34px);display:grid;grid-template-rows:auto minmax(0,1fr) auto}
+    .analysis-card{padding:clamp(18px,1.8vw,30px)}
     .level-row{min-height:0;display:flex;align-items:center;justify-content:center;gap:clamp(9px,1vw,16px);font-variant-numeric:tabular-nums}
-    .level{color:var(--state);font-size:clamp(92px,12vw,190px);font-weight:680;letter-spacing:-.09em;line-height:.82;text-shadow:0 0 42px color-mix(in srgb,var(--state) 22%,transparent);transition:color .28s ease,text-shadow .28s ease}.unit{margin-top:clamp(38px,6vh,72px);color:#7d848c;font-size:clamp(20px,2.3vw,36px);font-weight:580;letter-spacing:-.03em}
+    .level{color:var(--state);font-size:clamp(66px,7.2vw,116px);font-weight:680;letter-spacing:-.09em;line-height:.82;text-shadow:0 0 42px color-mix(in srgb,var(--state) 22%,transparent);transition:color .28s ease,text-shadow .28s ease}.unit{margin-top:clamp(28px,5vh,54px);color:#7d848c;font-size:clamp(16px,1.5vw,24px);font-weight:580;letter-spacing:-.03em}
     .status-card{padding:clamp(13px,1.4vw,19px);border:1px solid color-mix(in srgb,var(--state) 32%,transparent);border-radius:18px;background:color-mix(in srgb,var(--state) 7%,rgba(255,255,255,.025));transition:.28s ease}.status-line{display:flex;align-items:center;gap:11px}.state-dot{width:9px;height:9px;flex:0 0 auto;border-radius:50%;background:var(--state);box-shadow:0 0 17px color-mix(in srgb,var(--state) 65%,transparent)}
     .status-card.held{border-color:rgba(251,90,90,.34);background:rgba(251,90,90,.055)}.status-card.held .state-dot{background:var(--high);box-shadow:0 0 17px rgba(251,90,90,.62)}
     .status-name{color:var(--state);font-size:clamp(16px,1.45vw,23px);font-weight:680;letter-spacing:-.02em}.status-card.held .status-name{color:var(--high)}.action{margin:7px 0 0 20px;color:#c8ccd0;font-size:clamp(12px,1vw,15px);line-height:1.35}
-    .history{min-height:0;margin-top:clamp(14px,1.7vh,22px);padding-top:14px;border-top:1px solid rgba(255,255,255,.065);display:grid;grid-template-rows:auto minmax(0,1fr)}.history-heading{display:flex;align-items:flex-end;justify-content:space-between;gap:18px}.history h2{margin:5px 0 0;color:#f2f4f5;font-size:clamp(16px,1.55vw,24px);font-weight:620;letter-spacing:-.025em}.window-label{padding-bottom:2px;color:#70777e;font-size:clamp(10px,.85vw,12px);white-space:nowrap}.chart-wrap{position:relative;min-height:0;margin-top:9px}canvas{position:absolute;inset:0;width:100%;height:100%}
-    .nodes-card{padding:clamp(20px,2vw,32px);display:flex;flex-direction:column}.nodes-head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px}.nodes-card h2{margin:7px 0 0;font-size:clamp(21px,2vw,30px);font-weight:620;letter-spacing:-.035em}.node-count{padding-bottom:3px;color:#737a82;font-size:clamp(10px,.8vw,12px);text-align:right;white-space:nowrap}
-    .node-list{margin-top:clamp(18px,2vh,26px)}.node-row{padding:clamp(17px,1.8vh,24px) 0;border-top:1px solid rgba(255,255,255,.075)}.node-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}.node-name{font-size:clamp(15px,1.25vw,19px);font-weight:650}.node-reading{font-size:clamp(20px,1.8vw,28px);font-weight:650;font-variant-numeric:tabular-nums;white-space:nowrap}.node-unit{color:#777e85;font-size:clamp(10px,.75vw,12px);font-weight:600}
-    .node-status{margin-top:9px;display:flex;align-items:center;gap:8px;font-size:clamp(11px,.85vw,13px);font-weight:650}.node-dot{width:8px;height:8px;flex:0 0 auto;border-radius:50%}.node-row.connected .node-status{color:var(--low)}.node-row.connected .node-dot{background:var(--low);box-shadow:0 0 13px rgba(74,222,128,.7)}.node-row.disconnected .node-status{color:var(--high)}.node-row.disconnected .node-dot{background:var(--high);box-shadow:0 0 13px rgba(251,90,90,.62)}.node-time{margin:7px 0 0 16px;color:#777e85;font-size:clamp(10px,.78vw,12px);font-variant-numeric:tabular-nums;line-height:1.35}.future-space{flex:1;min-height:55px;border-top:1px solid rgba(255,255,255,.04);display:grid;place-items:end center}.future-label{padding-top:16px;color:rgba(145,152,159,.42);font-size:clamp(10px,.75vw,12px);text-align:center}.master-state{margin-top:auto;padding-top:14px;color:#70777e;font-size:11px;text-align:center}.master-state.offline{color:var(--high)}
+    .history{height:100%;min-height:0;display:grid;grid-template-rows:auto minmax(0,1fr)}.history-heading{display:flex;align-items:flex-end;justify-content:space-between;gap:18px}.history h2{margin:5px 0 0;color:#f2f4f5;font-size:clamp(18px,1.7vw,27px);font-weight:620;letter-spacing:-.025em}.history-tools{display:flex;align-items:flex-end;gap:12px}.window-label{padding-bottom:2px;color:#70777e;font-size:clamp(10px,.85vw,12px);white-space:nowrap}.view-switch{display:flex;padding:3px;border-radius:10px;background:rgba(255,255,255,.045)}.view-button{min-height:29px;padding:5px 10px;border:0;border-radius:8px;color:#858c93;background:transparent;font:600 11px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.view-button.active{color:#f5f7f8;background:rgba(255,255,255,.11)}.view-panel{position:relative;min-height:0;margin-top:11px}.view-panel.hidden{display:none}.chart-wrap{position:relative;min-height:0}.map-wrap{min-height:0;display:grid;grid-template-rows:minmax(0,1fr) auto;border-radius:12px;overflow:hidden;background:rgba(0,0,0,.18)}.map-canvas-wrap{position:relative;min-height:0}.map-caption{min-height:24px;padding:6px 9px;border-top:1px solid rgba(255,255,255,.055);color:#a2a8ae;background:rgba(5,6,7,.72);font-size:10px;letter-spacing:.02em;text-align:center}.map-caption.insufficient{color:#d1a7a7}canvas{position:absolute;inset:0;width:100%;height:100%}
+    .nodes-card{padding:clamp(15px,1.5vw,23px);display:grid;grid-template-columns:minmax(190px,.7fr) minmax(0,3fr) minmax(150px,.55fr);align-items:center;gap:clamp(16px,2vw,32px)}.nodes-head{display:flex;align-items:flex-start;justify-content:center;flex-direction:column;gap:7px}.nodes-card h2{margin:0;font-size:clamp(19px,1.7vw,27px);font-weight:620;letter-spacing:-.035em}.node-count{color:#737a82;font-size:clamp(10px,.8vw,12px);white-space:nowrap}
+    .node-list{min-width:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:clamp(20px,2.5vw,42px)}.node-row{min-width:0;padding:5px 0 5px clamp(14px,1.5vw,24px);border-left:1px solid rgba(255,255,255,.075)}.node-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}.node-name{font-size:clamp(15px,1.15vw,18px);font-weight:650}.node-reading{font-size:clamp(20px,1.65vw,26px);font-weight:650;font-variant-numeric:tabular-nums;white-space:nowrap}.node-unit{color:#777e85;font-size:clamp(10px,.75vw,12px);font-weight:600}
+    .node-status{margin-top:7px;display:flex;align-items:center;gap:8px;font-size:clamp(11px,.85vw,13px);font-weight:650}.node-dot{width:8px;height:8px;flex:0 0 auto;border-radius:50%}.node-row.connected .node-status{color:var(--low)}.node-row.connected .node-dot{background:var(--low);box-shadow:0 0 13px rgba(74,222,128,.7)}.node-row.disconnected .node-status{color:var(--high)}.node-row.disconnected .node-dot{background:var(--high);box-shadow:0 0 13px rgba(251,90,90,.62)}.node-time{margin:5px 0 0 16px;color:#777e85;font-size:clamp(10px,.78vw,12px);font-variant-numeric:tabular-nums;line-height:1.35}.future-space{min-height:64px;border-left:1px solid rgba(255,255,255,.055);display:grid;place-items:center}.future-label{padding:0 10px;color:rgba(145,152,159,.42);font-size:clamp(10px,.75vw,12px);text-align:center}.master-state{margin-top:7px;color:#70777e;font-size:11px}.master-state.offline{color:var(--high)}
     @supports not (backdrop-filter:blur(1px)){.glass{background:rgba(18,20,22,.94)}}
-    @media (orientation:landscape) and (max-height:680px){.shell{padding:11px;gap:11px}.topbar{min-height:62px;border-radius:18px}.main-card,.nodes-card{border-radius:21px}.main-card{padding:18px 24px;grid-template-rows:auto minmax(125px,.8fr) auto minmax(120px,.55fr)}.nodes-card{padding:18px 22px}.level{font-size:clamp(82px,10.5vw,154px)}.unit{margin-top:35px}.status-card{padding:11px 15px}.node-row{padding:14px 0}.node-list{margin-top:13px}.history{margin-top:10px}}
-    @media(max-width:900px){html,body{overflow:auto}.shell{height:auto;min-height:100dvh}.content{grid-template-columns:1fr}.main-card{min-height:650px}.nodes-card{min-height:430px}.future-space{min-height:90px}}
-    @media(max-width:540px){.shell{padding:10px}.topbar{padding:12px 15px;border-radius:18px}.eyebrow{display:none}h1{font-size:20px}.logo-wrap{width:92px}.main-card,.nodes-card{padding:18px;border-radius:20px}.main-card{min-height:600px}.level{font-size:86px}.unit{font-size:20px;margin-top:30px}.history-heading{align-items:flex-start;flex-direction:column;gap:2px}}
+    @media (orientation:landscape) and (max-height:680px){.shell{padding:11px;gap:11px}.topbar{min-height:62px;border-radius:18px}.reading-card,.analysis-card,.nodes-card{border-radius:21px}.reading-card{padding:18px}.analysis-card{padding:16px 20px}.nodes-card{padding:12px 18px}.level{font-size:clamp(60px,6.5vw,96px)}.unit{margin-top:28px}.status-card{padding:10px 13px}.action{font-size:11px}.node-row{padding-top:2px;padding-bottom:2px}}
+    @media(max-width:900px){html,body{overflow:auto}.shell{height:auto;min-height:100dvh}.content{grid-template-rows:auto auto}.top-row{grid-template-columns:1fr}.reading-card{min-height:390px}.analysis-card{min-height:530px}.nodes-card{grid-template-columns:1fr;min-height:430px}.node-list{margin-top:8px}.node-row{padding:15px 0;border-left:0;border-top:1px solid rgba(255,255,255,.075)}.future-space{min-height:90px;border-left:0;border-top:1px solid rgba(255,255,255,.045)}.master-state{text-align:center}}
+    @media(max-width:540px){.shell{padding:10px}.topbar{padding:12px 15px;border-radius:18px}.eyebrow{display:none}h1{font-size:20px}.logo-wrap{width:92px}.reading-card,.analysis-card,.nodes-card{padding:18px;border-radius:20px}.reading-card{min-height:360px}.analysis-card{min-height:470px}.level{font-size:86px}.unit{font-size:20px;margin-top:30px}.history-heading{align-items:flex-start;flex-direction:column;gap:6px}.history-tools{width:100%;align-items:center;justify-content:space-between}}
   </style>
 </head>
 <body>
@@ -42,24 +44,38 @@
     </header>
 
     <section class="content">
-      <article class="main-card glass">
-        <div class="panel-label">Overall sound level</div>
-        <div class="level-row"><div id="currentLevel" class="level">--.-</div><div class="unit">dB(A)</div></div>
-        <div id="statusCard" class="status-card">
-          <div class="status-line"><span class="state-dot"></span><span id="statusName" class="status-name">Waiting for a sensor</span></div>
-          <p id="actionText" class="action">The first live measurement will appear automatically.</p>
-        </div>
-        <div class="history">
-          <div class="history-heading"><div><div class="panel-label">Averaged sound level trend</div><h2>dB(A) history</h2></div><div class="window-label">Latest 60 one-second readings</div></div>
-          <div class="chart-wrap"><canvas id="historyCanvas" aria-label="Averaged sound level history chart"></canvas></div>
-        </div>
-      </article>
+      <div class="top-row">
+        <article class="reading-card glass">
+          <div class="panel-label">Overall sound level</div>
+          <div class="level-row"><div id="currentLevel" class="level">--.-</div><div class="unit">dB(A)</div></div>
+          <div id="statusCard" class="status-card">
+            <div class="status-line"><span class="state-dot"></span><span id="statusName" class="status-name">Waiting for a sensor</span></div>
+            <p id="actionText" class="action">The first live measurement will appear automatically.</p>
+          </div>
+        </article>
+
+        <article class="analysis-card glass">
+          <div class="history">
+            <div class="history-heading">
+              <div><div id="analysisLabel" class="panel-label">Preliminary spatial estimate</div><h2 id="analysisTitle">Plant room noise map</h2></div>
+              <div class="history-tools">
+                <div class="view-switch" aria-label="Analysis view">
+                  <button id="mapButton" class="view-button active" type="button">Noise map</button>
+                  <button id="historyButton" class="view-button" type="button">Trend</button>
+                </div>
+                <div id="viewContext" class="window-label">52.3 × 26.4 m · height 1.5 m</div>
+              </div>
+            </div>
+            <div id="mapView" class="view-panel map-wrap"><div class="map-canvas-wrap"><canvas id="noiseMapCanvas" aria-label="Preliminary two-dimensional plant room noise map"></canvas></div><div id="mapCaption" class="map-caption insufficient">Insufficient sensors available</div></div>
+            <div id="historyView" class="view-panel chart-wrap hidden"><canvas id="historyCanvas" aria-label="Averaged sound level history chart"></canvas></div>
+          </div>
+        </article>
+      </div>
 
       <aside class="nodes-card glass">
-        <div class="nodes-head"><div><div class="panel-label">Sensor network</div><h2>Node readings</h2></div><div id="nodeCount" class="node-count">0 of 2 connected</div></div>
+        <div class="nodes-head"><div><div class="panel-label">Sensor network</div><h2>Node readings</h2></div><div id="nodeCount" class="node-count">0 of 2 connected</div><div id="masterState" class="master-state">Connecting to master…</div></div>
         <div id="nodeList" class="node-list" aria-live="polite"></div>
         <div class="future-space"><div class="future-label">Reserved for additional sensor nodes</div></div>
-        <div id="masterState" class="master-state">Connecting to master…</div>
       </aside>
     </section>
   </main>
@@ -67,8 +83,34 @@
   <script>
     "use strict";
     const POLL_MS=350,FETCH_TIMEOUT_MS=1800,OFFLINE_MS=4000,LIMIT=60,C={low:"#4ade80",moderate:"#fbbf24",high:"#fb5a5a"};
-    const history=[],nodeOnlineState=new Map(),lastConnectedMemory=new Map();let lastID=null,lastContact=0,busy=false,stateKey="moderate",cachedNodes=[],configuredCount=2,activeCount=0,masterOnline=false;
-    const levelEl=document.getElementById("currentLevel"),statusCard=document.getElementById("statusCard"),statusEl=document.getElementById("statusName"),actionEl=document.getElementById("actionText"),nodeList=document.getElementById("nodeList"),nodeCount=document.getElementById("nodeCount"),masterState=document.getElementById("masterState"),canvas=document.getElementById("historyCanvas");
+    // ================================================================
+    // PRELIMINARY NOISE-MAP PARAMETERS
+    // Edit all room, equipment, sensor, and assumed model values here.
+    // Coordinates use metres from the bottom-left corner of the room.
+    // ================================================================
+    const NOISE_MAP_CONFIG={
+      room:{widthM:52.3,heightM:26.4},
+      chillers:[
+        {name:"Chiller 1",centerX:12.95,centerY:14.00,sizeX:3.9,sizeY:10.21},
+        {name:"Chiller 2",centerX:18.35,centerY:14.00,sizeX:3.9,sizeY:10.21},
+        {name:"Chiller 3",centerX:23.75,centerY:14.00,sizeX:3.9,sizeY:10.21},
+        {name:"Chiller 4",centerX:29.15,centerY:14.00,sizeX:3.9,sizeY:10.21}
+      ],
+      sensors:[
+        {id:"sensor-1",name:"Sensor 1",x:11.1,y:10.0},
+        {id:"sensor-2",name:"Sensor 2",x:45.0,y:10.0}
+      ],
+      assumptions:{
+        measurementHeightM:1.5,
+        sensorInterpolationPower:2.0,
+        sensorAnchorRadiusM:0.15,
+        displayMinDBA:55,
+        displayMaxDBA:95,
+        gridPixelSize:5
+      }
+    };
+    const history=[],nodeOnlineState=new Map(),lastConnectedMemory=new Map();let lastID=null,lastContact=0,busy=false,stateKey="moderate",cachedNodes=[],configuredCount=2,activeCount=0,masterOnline=false,mapNodes=[],mapAnchors=[],mapAvailable=false,mapSignature="",currentAnalysisView="map";
+    const levelEl=document.getElementById("currentLevel"),statusCard=document.getElementById("statusCard"),statusEl=document.getElementById("statusName"),actionEl=document.getElementById("actionText"),nodeList=document.getElementById("nodeList"),nodeCount=document.getElementById("nodeCount"),masterState=document.getElementById("masterState"),canvas=document.getElementById("historyCanvas"),mapCanvas=document.getElementById("noiseMapCanvas"),historyView=document.getElementById("historyView"),mapView=document.getElementById("mapView"),historyButton=document.getElementById("historyButton"),mapButton=document.getElementById("mapButton"),analysisLabel=document.getElementById("analysisLabel"),analysisTitle=document.getElementById("analysisTitle"),viewContext=document.getElementById("viewContext"),mapCaption=document.getElementById("mapCaption");
 
     function classify(v){if(v<70)return{key:"low",label:"Low noise",action:"Continue normal monitoring."};if(v<80)return{key:"moderate",label:"Moderate noise",action:"Ear plugs recommended."};return{key:"high",label:"High noise",action:"Ear plugs recommended. Avoid prolonged exposure."}}
     function setTheme(v){const s=classify(v);stateKey=s.key;document.documentElement.style.setProperty("--state",C[s.key]);return s}
@@ -102,12 +144,50 @@
       });
       activeCount=forceOffline?0:online;nodeCount.textContent=`${activeCount} of ${configuredCount} connected`;
     }
+    function syncNoiseMapData(data){
+      mapNodes=Array.isArray(data.nodes)?data.nodes:[];
+      const nextSignature=String(Boolean(data.held))+"|"+mapNodes.map(node=>[node.id,node.online,node.contributed,node.window_dba].join(":")).join("|");
+      const changed=nextSignature!==mapSignature;mapSignature=nextSignature;
+      const anchors=[];
+      NOISE_MAP_CONFIG.sensors.forEach(sensor=>{
+        const node=mapNodes.find(item=>item.id===sensor.id),value=node?Number(node.window_dba):NaN;
+        if(node&&node.online&&node.contributed&&Number.isFinite(value))anchors.push({id:sensor.id,name:sensor.name,x:sensor.x,y:sensor.y,dba:value});
+      });
+      mapAvailable=anchors.length>=2&&!data.held;
+      mapAnchors=mapAvailable?anchors:[];
+      mapCaption.classList.toggle("insufficient",!mapAvailable);
+      mapCaption.textContent=mapAvailable?`Measurement interpolation · ${anchors.length} synchronized sensors`:"Insufficient sensors available";
+      return changed;
+    }
+    function mapDBA(x,y,anchors){
+      const a=NOISE_MAP_CONFIG.assumptions;let weightedEnergy=0,weightSum=0;
+      for(const sensor of anchors){const distance=Math.hypot(x-sensor.x,y-sensor.y);if(distance<=a.sensorAnchorRadiusM)return sensor.dba;const weight=1/Math.pow(Math.max(distance,a.sensorAnchorRadiusM),a.sensorInterpolationPower);weightedEnergy+=weight*Math.pow(10,sensor.dba/10);weightSum+=weight}
+      return weightSum?10*Math.log10(weightedEnergy/weightSum):NaN;
+    }
+    const HEAT_STOPS=[{v:55,c:[21,54,45]},{v:69.9,c:[74,222,128]},{v:75,c:[251,191,36]},{v:80,c:[251,90,90]},{v:95,c:[116,25,40]}];
+    function heatColor(value){
+      if(value<=HEAT_STOPS[0].v)return`rgb(${HEAT_STOPS[0].c.join(",")})`;for(let i=1;i<HEAT_STOPS.length;i++){const left=HEAT_STOPS[i-1],right=HEAT_STOPS[i];if(value<=right.v){const t=(value-left.v)/(right.v-left.v),rgb=left.c.map((channel,index)=>Math.round(channel+(right.c[index]-channel)*t));return`rgb(${rgb.join(",")})`}}const last=HEAT_STOPS[HEAT_STOPS.length-1];return`rgb(${last.c.join(",")})`;
+    }
+    function drawNoiseMap(){
+      if(currentAnalysisView!=="map")return;const rect=mapCanvas.getBoundingClientRect();if(rect.width<2||rect.height<2)return;
+      const d=Math.min(2,Math.max(1,devicePixelRatio||1)),pixelWidth=Math.round(rect.width*d),pixelHeight=Math.round(rect.height*d);if(mapCanvas.width!==pixelWidth||mapCanvas.height!==pixelHeight){mapCanvas.width=pixelWidth;mapCanvas.height=pixelHeight}const x=mapCanvas.getContext("2d");x.setTransform(d,0,0,d,0,0);x.clearRect(0,0,rect.width,rect.height);
+      const room=NOISE_MAP_CONFIG.room,padding={l:30,r:12,t:12,b:23},availableWidth=rect.width-padding.l-padding.r,availableHeight=rect.height-padding.t-padding.b,roomRatio=room.widthM/room.heightM;let plotWidth=availableWidth,plotHeight=plotWidth/roomRatio;if(plotHeight>availableHeight){plotHeight=availableHeight;plotWidth=plotHeight*roomRatio}const plotX=padding.l+(availableWidth-plotWidth)/2,plotY=padding.t+(availableHeight-plotHeight)/2,toX=value=>plotX+value/room.widthM*plotWidth,toY=value=>plotY+plotHeight-value/room.heightM*plotHeight,anchors=mapAnchors;
+      x.fillStyle="rgba(0,0,0,.2)";x.fillRect(plotX,plotY,plotWidth,plotHeight);
+      if(anchors.length){const step=Math.max(3,NOISE_MAP_CONFIG.assumptions.gridPixelSize),columns=Math.ceil(plotWidth/step),rows=Math.ceil(plotHeight/step);for(let row=0;row<rows;row++){for(let column=0;column<columns;column++){const px=plotX+column*plotWidth/columns,py=plotY+row*plotHeight/rows,mx=(column+.5)/columns*room.widthM,my=room.heightM-(row+.5)/rows*room.heightM;x.fillStyle=heatColor(mapDBA(mx,my,anchors));x.fillRect(px,py,plotWidth/columns+1,plotHeight/rows+1)}}}
+      x.strokeStyle="rgba(255,255,255,.46)";x.lineWidth=1;x.strokeRect(plotX+.5,plotY+.5,plotWidth-1,plotHeight-1);
+      x.font="10px -apple-system,sans-serif";x.textBaseline="middle";x.textAlign="center";
+      NOISE_MAP_CONFIG.chillers.forEach(chiller=>{const left=toX(chiller.centerX-chiller.sizeX/2),right=toX(chiller.centerX+chiller.sizeX/2),top=toY(chiller.centerY+chiller.sizeY/2),bottom=toY(chiller.centerY-chiller.sizeY/2);x.fillStyle="rgba(5,6,7,.54)";x.fillRect(left,top,right-left,bottom-top);x.strokeStyle="rgba(255,255,255,.58)";x.strokeRect(left+.5,top+.5,right-left-1,bottom-top-1);x.save();x.translate((left+right)/2,(top+bottom)/2);if(bottom-top>45)x.rotate(-Math.PI/2);x.fillStyle="#f0f2f3";x.fillText(chiller.name,0,0);x.restore()});
+      NOISE_MAP_CONFIG.sensors.forEach(sensor=>{const node=mapNodes.find(item=>item.id===sensor.id),online=Boolean(node&&node.online),sx=toX(sensor.x),sy=toY(sensor.y);x.beginPath();x.arc(sx,sy,5,0,Math.PI*2);x.fillStyle=online?C.low:C.high;x.fill();x.strokeStyle="#f5f7f8";x.lineWidth=1.5;x.stroke();x.fillStyle="#f5f7f8";x.textAlign="left";x.fillText(sensor.name,sx+8,sy-5);const value=node?Number(node.window_dba):NaN;x.fillStyle="#c8ccd0";x.fillText(Number.isFinite(value)?value.toFixed(1)+" dB(A)":"--.- dB(A)",sx+8,sy+7)});
+      x.fillStyle="#777e85";x.textAlign="left";x.textBaseline="top";x.fillText("0 m",plotX,plotY+plotHeight+6);x.textAlign="right";x.fillText(room.widthM.toFixed(1)+" m",plotX+plotWidth,plotY+plotHeight+6);x.save();x.translate(plotX-8,plotY);x.rotate(-Math.PI/2);x.textAlign="right";x.fillText(room.heightM.toFixed(1)+" m",0,0);x.restore();
+      if(mapAvailable){const legendWidth=Math.min(130,plotWidth*.28),legendX=plotX+plotWidth-legendWidth-7,legendY=plotY+7,gradient=x.createLinearGradient(legendX,0,legendX+legendWidth,0);HEAT_STOPS.forEach(stop=>gradient.addColorStop((stop.v-NOISE_MAP_CONFIG.assumptions.displayMinDBA)/(NOISE_MAP_CONFIG.assumptions.displayMaxDBA-NOISE_MAP_CONFIG.assumptions.displayMinDBA),`rgb(${stop.c.join(",")})`));x.fillStyle="rgba(5,6,7,.7)";x.fillRect(legendX-5,legendY-5,legendWidth+10,24);x.fillStyle=gradient;x.fillRect(legendX,legendY,legendWidth,7);x.fillStyle="#e3e6e8";x.font="9px -apple-system,sans-serif";x.textBaseline="top";x.textAlign="left";x.fillText("55",legendX,legendY+9);x.textAlign="center";x.fillText("70",legendX+legendWidth*.375,legendY+9);x.fillText("80",legendX+legendWidth*.625,legendY+9);x.textAlign="right";x.fillText("95 dB(A)",legendX+legendWidth,legendY+9)}
+    }
+    function setAnalysisView(view){currentAnalysisView=view;const showMap=view==="map";historyView.classList.toggle("hidden",showMap);mapView.classList.toggle("hidden",!showMap);historyButton.classList.toggle("active",!showMap);mapButton.classList.toggle("active",showMap);analysisLabel.textContent=showMap?"Preliminary spatial estimate":"Averaged sound level trend";analysisTitle.textContent=showMap?"Plant room noise map":"dB(A) history";viewContext.textContent=showMap?`${NOISE_MAP_CONFIG.room.widthM} × ${NOISE_MAP_CONFIG.room.heightM} m · height ${NOISE_MAP_CONFIG.assumptions.measurementHeightM} m`:"Latest 60 one-second readings";requestAnimationFrame(showMap?drawNoiseMap:draw)}
     function prep(){const r=canvas.getBoundingClientRect(),d=Math.max(1,devicePixelRatio||1),w=Math.max(1,Math.round(r.width*d)),h=Math.max(1,Math.round(r.height*d));if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h}const x=canvas.getContext("2d");x.setTransform(d,0,0,d,0,0);return{x,w:r.width,h:r.height}}
-    function draw(){const{x,w,h}=prep();x.clearRect(0,0,w,h);const p={l:43,r:12,t:10,b:23},pw=Math.max(1,w-p.l-p.r),ph=Math.max(1,h-p.t-p.b);let lo=50,hi=100;if(history.length){lo=Math.floor((Math.min(...history)-5)/10)*10;hi=Math.ceil((Math.max(...history)+5)/10)*10;if(hi-lo<20)hi=lo+20}const yFor=v=>p.t+ph-((v-lo)/(hi-lo))*ph;x.font="11px -apple-system,sans-serif";x.textBaseline="middle";x.textAlign="right";for(let i=0;i<=3;i++){const f=i/3,y=p.t+f*ph,v=hi-f*(hi-lo);x.strokeStyle="rgba(255,255,255,.07)";x.lineWidth=1;x.beginPath();x.moveTo(p.l,y);x.lineTo(p.l+pw,y);x.stroke();x.fillStyle="#6f767d";x.fillText(v.toFixed(0),p.l-8,y)}if(history.length>1){const pts=history.map((v,i)=>({x:p.l+i/Math.max(1,LIMIT-1)*pw,y:yFor(v)})),g=x.createLinearGradient(0,p.t,0,p.t+ph);g.addColorStop(0,C[stateKey]+"38");g.addColorStop(1,C[stateKey]+"00");x.beginPath();x.moveTo(pts[0].x,p.t+ph);pts.forEach(q=>x.lineTo(q.x,q.y));x.lineTo(pts.at(-1).x,p.t+ph);x.closePath();x.fillStyle=g;x.fill();x.beginPath();pts.forEach((q,i)=>i?x.lineTo(q.x,q.y):x.moveTo(q.x,q.y));x.strokeStyle=C[stateKey];x.lineWidth=2.5;x.lineJoin="round";x.lineCap="round";x.shadowColor=C[stateKey]+"70";x.shadowBlur=10;x.stroke();x.shadowBlur=0}x.fillStyle="#666d74";x.font="10px -apple-system,sans-serif";x.textBaseline="top";x.textAlign="left";x.fillText("Earlier",p.l,p.t+ph+8);x.textAlign="right";x.fillText("Now",p.l+pw,p.t+ph+8)}
+    function draw(){const{x,w,h}=prep();x.clearRect(0,0,w,h);const p={l:43,r:12,t:10,b:23},pw=Math.max(1,w-p.l-p.r),ph=Math.max(1,h-p.t-p.b);let lo=50,hi=100;if(history.length){lo=Math.floor((Math.min(...history)-5)/10)*10;hi=Math.ceil((Math.max(...history)+5)/10)*10;if(hi-lo<20)hi=lo+20}const yFor=v=>p.t+ph-((v-lo)/(hi-lo))*ph;x.font="11px -apple-system,sans-serif";x.textBaseline="middle";x.textAlign="right";for(let i=0;i<=3;i++){const f=i/3,y=p.t+f*ph,v=hi-f*(hi-lo);x.strokeStyle="rgba(255,255,255,.07)";x.lineWidth=1;x.beginPath();x.moveTo(p.l,y);x.lineTo(p.l+pw,y);x.stroke();x.fillStyle="#6f767d";x.fillText(v.toFixed(0),p.l-8,y)}if(history.length>1){const pts=history.map((v,i)=>({x:p.l+i/Math.max(1,LIMIT-1)*pw,y:yFor(v)})),g=x.createLinearGradient(0,p.t,0,p.t+ph),lastPoint=pts[pts.length-1];g.addColorStop(0,C[stateKey]+"38");g.addColorStop(1,C[stateKey]+"00");x.beginPath();x.moveTo(pts[0].x,p.t+ph);pts.forEach(q=>x.lineTo(q.x,q.y));x.lineTo(lastPoint.x,p.t+ph);x.closePath();x.fillStyle=g;x.fill();x.beginPath();pts.forEach((q,i)=>i?x.lineTo(q.x,q.y):x.moveTo(q.x,q.y));x.strokeStyle=C[stateKey];x.lineWidth=2.5;x.lineJoin="round";x.lineCap="round";x.shadowColor=C[stateKey]+"70";x.shadowBlur=10;x.stroke();x.shadowBlur=0}x.fillStyle="#666d74";x.font="10px -apple-system,sans-serif";x.textBaseline="top";x.textAlign="left";x.fillText("Earlier",p.l,p.t+ph+8);x.textAlign="right";x.fillText("Now",p.l+pw,p.t+ph+8)}
     function setMasterOnline(ok){masterOnline=ok;masterState.classList.toggle("offline",!ok);masterState.textContent=ok?"Master connected":"Master connection lost";if(!ok){if(cachedNodes.length)renderNodes(cachedNodes,true);if(levelEl.textContent!=="--.-"){statusCard.classList.add("held");statusEl.textContent="Held value";actionEl.textContent="Master connection lost. Showing the last received average."}}}
-    async function poll(){if(busy)return;busy=true;const controller=new AbortController(),timeoutID=setTimeout(()=>controller.abort(),FETCH_TIMEOUT_MS);try{const response=await fetch("/api/v1/status",{cache:"no-store",signal:controller.signal});if(!response.ok)throw Error(`HTTP ${response.status}`);const data=await response.json();lastContact=Date.now();setMasterOnline(true);configuredCount=Number(data.configured_node_count)||2;setAggregate(data);renderNodes(Array.isArray(data.nodes)?data.nodes:[]);const value=Number(data.overall_dba),id=Number(data.result_id);if(data.has_value&&!data.held&&Number.isFinite(value)&&Number.isFinite(id)&&id!==lastID){lastID=id;history.push(value);while(history.length>LIMIT)history.shift();draw()}}catch(error){if(error.name!=="AbortError")console.error(error)}finally{clearTimeout(timeoutID);busy=false}}
+    async function poll(){if(busy)return;busy=true;const controller=new AbortController(),timeoutID=setTimeout(()=>controller.abort(),FETCH_TIMEOUT_MS);try{const response=await fetch("/api/v1/status",{cache:"no-store",signal:controller.signal});if(!response.ok)throw Error(`HTTP ${response.status}`);const data=await response.json();lastContact=Date.now();setMasterOnline(true);configuredCount=Number(data.configured_node_count)||2;setAggregate(data);renderNodes(Array.isArray(data.nodes)?data.nodes:[]);const mapChanged=syncNoiseMapData(data),value=Number(data.overall_dba),id=Number(data.result_id);if(data.has_value&&!data.held&&Number.isFinite(value)&&Number.isFinite(id)&&id!==lastID){lastID=id;history.push(value);while(history.length>LIMIT)history.shift();if(currentAnalysisView==="history")draw()}if(mapChanged&&currentAnalysisView==="map")drawNoiseMap()}catch(error){if(error.name!=="AbortError")console.error(error)}finally{clearTimeout(timeoutID);busy=false}}
     function checkConnection(){if(lastContact===0||Date.now()-lastContact>OFFLINE_MS){if(masterOnline)setMasterOnline(false)}}
-    addEventListener("resize",draw);draw();poll();setInterval(poll,POLL_MS);setInterval(checkConnection,500);
+    historyButton.addEventListener("click",()=>setAnalysisView("history"));mapButton.addEventListener("click",()=>setAnalysisView("map"));addEventListener("resize",()=>{draw();drawNoiseMap()});drawNoiseMap();poll();setInterval(poll,POLL_MS);setInterval(checkConnection,500);
   </script>
 </body>
 </html>

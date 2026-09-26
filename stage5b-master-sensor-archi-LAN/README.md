@@ -211,6 +211,37 @@ do not increase the dashboard update frequency.
 | `POST http://192.168.4.1/api/v1/readings` | Sensor-to-master report |
 | `GET http://192.168.4.1/api/v1/status` | Aggregate and node-health JSON |
 
+## Preliminary noise map
+
+The dashboard opens with the overall sound level in the left 25% of the upper
+row and the noise map in the remaining 75%. Individual sensor readings appear
+in a full-width card below. Select **Trend** in the map card to inspect the
+latest 60 one-second averages. The map uses the synchronized one-second reading
+from each contributing sensor and performs inverse-distance interpolation in
+linear acoustic-energy space. Chillers are drawn only as neutral floor-plan
+context; they are not treated as sound sources. It is an indicative
+visualization, not a validated acoustic simulation or regulatory exposure map.
+
+The heat field requires at least two connected sensors that contributed to the
+same one-second window. With zero or one contributor, the heat field is turned
+off and the dashboard shows **Insufficient sensors available** below the
+neutral floor plan. A single sensor is not used to invent a radial decay model.
+
+All editable map inputs and assumptions are intentionally kept together in
+`master_node/data/index.html` under `NOISE_MAP_CONFIG`. No `.h` file needs to
+be changed. That block contains:
+
+- Room dimensions: 52.3 m × 26.4 m
+- Four chiller centre coordinates and footprints used for visual context only
+- Sensor 1 at (11.1, 10.0) m
+- Sensor 2 at (45.0, 10.0) m
+- Assumed measurement height, interpolation power, sensor anchor radius,
+  display range, and rendering resolution
+
+After changing map geometry or assumptions, upload the `master_node/data/`
+filesystem again. A master firmware upload is unnecessary unless the API or
+firmware also changed.
+
 ## Commissioning checks
 
 - Place both microphones side by side and expose them to the same steady source.

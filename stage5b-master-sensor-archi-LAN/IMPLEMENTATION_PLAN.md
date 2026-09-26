@@ -244,17 +244,20 @@ response keeps `overall_dba` and `result_id`, sets `held: true`, and sets
 ## 5. Dashboard changes
 
 Retain the present dark glass theme, typography, color thresholds, local logo,
-native canvas chart, and offline-only assets. Use exactly two top-level cards
-in a responsive desktop layout:
+native canvas graphics, and offline-only assets. The responsive desktop layout
+uses:
 
-- **Left card (approximately 68% width):** the main overall dBA value, live or
-  held state, safety classification, and the aggregate history chart below it.
-- **Right card (approximately 32% width):** an expandable sensor-node list.
-  Initially it contains Sensor 1 and Sensor 2 followed by intentional empty
-  space for additional nodes.
+- **Upper-left card (approximately 25% width):** the overall dBA value, live or
+  held state, and safety classification.
+- **Upper-right card (approximately 75% width):** the noise map by default,
+  with the aggregate trend available as a secondary view.
+- **Lower full-width card:** the expandable sensor-node list. Initially it
+  contains Sensor 1 and Sensor 2 horizontally, followed by space reserved for
+  additional nodes.
 
-On narrow screens, stack the left card above the sensor card. Do not compress
-the sensor rows until their labels or timestamps become difficult to read.
+On narrow screens, stack the overall card, map card, and sensor card. Do not
+compress sensor rows until their labels or timestamps become difficult to
+read.
 
 Change only the data semantics and connection detail:
 
@@ -317,8 +320,9 @@ The master must send `Cache-Control: no-store`.
 1. Preserve the current theme, typography, glass treatment, and color tokens.
 2. Change the JSON field mapping and implement live, degraded, held, and
    never-received states.
-3. Replace the old right-side history card with a sensor-status card; move the
-   history chart into the bottom of the larger left card.
+3. Place the overall reading and map side by side at a 25/75 ratio, retain the
+   trend as a secondary map-card view, and move sensor status into a full-width
+   card below.
 4. Build sensor rows from the `nodes` array so future nodes require
    configuration rather than new HTML.
 5. Test landscape, portrait, refresh, and master reboot behavior.
@@ -363,3 +367,30 @@ to be calibrated against an appropriate acoustic calibrator or traceable
 reference. Enclosure, microphone variation, mounting, reflections, and
 placement can all change the reading. Label results as estimated dBA until
 that calibration and validation are complete.
+
+## 9. Preliminary 2D noise map
+
+The dashboard implements an indicative map view using the room, chiller, and
+sensor geometry defined together in `NOISE_MAP_CONFIG` inside
+`master_node/data/index.html`. It deliberately does not place those parameters
+in a firmware header so layout changes require only a LittleFS upload.
+
+The first model is deliberately source-neutral. At every one-second aggregate,
+it converts synchronized per-node dBA values to linear acoustic energy and
+uses inverse-distance weighting to interpolate between the available sensors.
+The chiller footprints are drawn only as floor-plan context and do not
+contribute energy or create modeled hotspots. Equipment footprints, sensor
+markers, connection state, axes, and a dBA colour scale are drawn locally on
+canvas.
+
+The measurement map requires at least two connected nodes contributing to the
+same one-second window. With fewer than two, the heat layer is disabled and an
+**Insufficient sensors available** message is shown below the neutral floor
+plan. The dashboard does not infer radial decay from a lone sensor.
+
+With only two sensors, this mainly produces a broad transition between their
+measurements and is poorly constrained outside the line between them. It
+should be used to explore relative patterns only. A future validated version
+should incorporate a spatial survey, additional sensors, octave-band data, and
+room acoustic properties. A source-based layer can be added later when
+chiller operating states and measured or fitted source strengths are known.
