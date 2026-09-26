@@ -1,0 +1,19 @@
+#pragma once
+
+// Use unique identity values for every sensor board.
+#define NODE_ID "sensor-1"
+#define NODE_NAME "Sensor 1"
+
+// These values must match master_node/config.h.
+#define AP_SSID "SPD_Noise_Monitor"
+#define AP_PASSWORD "replace-with-at-least-8-characters"
+#define API_KEY "replace-with-a-private-shared-key"
+#define MASTER_HOST "192.168.4.1"
+
+// Determine this independently for each complete microphone assembly.
+#define SENSOR_CALIBRATION_DB 123.01
+
+// Update these values if the physical wiring differs.
+#define SENSOR_I2S_BCLK 18
+#define SENSOR_I2S_LRCLK 16
+#define SENSOR_I2S_DIN 17

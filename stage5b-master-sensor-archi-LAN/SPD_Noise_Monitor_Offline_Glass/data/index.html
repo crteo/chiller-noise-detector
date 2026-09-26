@@ -10,28 +10,24 @@
     *{box-sizing:border-box}html,body{width:100%;height:100%;margin:0;overflow:hidden}
     body{color:var(--text);background:radial-gradient(circle at 14% 8%,rgba(255,255,255,.075),transparent 27%),radial-gradient(circle at 88% 85%,rgba(70,79,90,.2),transparent 31%),linear-gradient(145deg,#030405,#0a0c0e 52%,#030405);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;-webkit-font-smoothing:antialiased}
     body:before{content:"";position:fixed;inset:0;pointer-events:none;background-image:linear-gradient(rgba(255,255,255,.012) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.012) 1px,transparent 1px);background-size:42px 42px;mask-image:linear-gradient(to bottom,#000,transparent 90%)}
-    .shell{position:relative;width:100%;height:100dvh;min-height:520px;padding:clamp(16px,2.1vw,30px);display:grid;grid-template-rows:auto auto minmax(0,1fr);gap:clamp(12px,1.4vw,20px)}
+    .shell{position:relative;width:100%;height:100dvh;min-height:520px;padding:clamp(16px,2.1vw,30px);display:grid;grid-template-rows:auto minmax(0,1fr);gap:clamp(14px,1.7vw,24px)}
     .glass{background:var(--glass);border:1px solid var(--line);box-shadow:inset 0 1px 0 rgba(255,255,255,.055),0 24px 65px rgba(0,0,0,.34);backdrop-filter:blur(22px) saturate(120%);-webkit-backdrop-filter:blur(22px) saturate(120%)}
     .topbar{min-height:clamp(74px,9vh,104px);padding:12px clamp(18px,2.2vw,32px);border-radius:24px;display:flex;align-items:center;justify-content:space-between;gap:28px}
     .eyebrow,.panel-label{color:var(--muted);font-size:clamp(10px,.9vw,14px);font-weight:700;letter-spacing:.17em;text-transform:uppercase}.eyebrow{margin-bottom:7px;color:#737a82}
     h1{margin:0;color:#f7f8f9;font-size:clamp(24px,3vw,46px);font-weight:650;letter-spacing:-.035em;line-height:1;white-space:nowrap}
     .logo-wrap{width:clamp(125px,15vw,220px);height:clamp(44px,6vh,68px);flex:0 0 auto;display:grid;place-items:center end}.logo-wrap img{display:block;max-width:100%;max-height:100%;object-fit:contain;object-position:right center}.logo-fallback{display:none;color:#e8ebed;font-size:clamp(17px,1.8vw,25px);font-weight:680;letter-spacing:.05em}
-    .tabs{display:flex;gap:10px;align-items:center}.tab{min-height:44px;padding:10px 20px;border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.035);color:#a9b0b6;font:inherit;font-size:clamp(13px,1.1vw,16px);font-weight:650;cursor:pointer;transition:background .2s ease,color .2s ease,border-color .2s ease}.tab:hover{background:rgba(255,255,255,.09);color:var(--text)}.tab[aria-selected="true"]{background:rgba(255,255,255,.15);border-color:rgba(255,255,255,.3);color:var(--text)}.tab:focus-visible{outline:2px solid #f5f7f8;outline-offset:3px}.content[hidden]{display:none}
     .content{min-height:0;display:grid;grid-template-columns:minmax(410px,.84fr) minmax(520px,1.16fr);gap:clamp(14px,1.7vw,24px)}
     .reading,.history{min-height:0;border-radius:28px;overflow:hidden}.reading{padding:clamp(22px,3vw,46px);display:flex;flex-direction:column}
     .level-row{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;gap:clamp(10px,1vw,18px);font-variant-numeric:tabular-nums}
     .level{color:var(--state);font-size:clamp(104px,14vw,220px);font-weight:680;letter-spacing:-.09em;line-height:.82;text-shadow:0 0 42px color-mix(in srgb,var(--state) 22%,transparent);transition:color .28s ease,text-shadow .28s ease}.unit{margin-top:clamp(48px,8vh,95px);color:#7d848c;font-size:clamp(22px,2.7vw,40px);font-weight:580;letter-spacing:-.03em}
     .status-card{padding:clamp(16px,1.7vw,23px);border:1px solid color-mix(in srgb,var(--state) 32%,transparent);border-radius:20px;background:color-mix(in srgb,var(--state) 7%,rgba(255,255,255,.025));transition:.28s ease}.status-line{display:flex;align-items:center;gap:12px}.state-dot{width:10px;height:10px;flex:0 0 auto;border-radius:50%;background:var(--state);box-shadow:0 0 18px color-mix(in srgb,var(--state) 65%,transparent)}
     .status-name{color:var(--state);font-size:clamp(18px,1.8vw,27px);font-weight:680;letter-spacing:-.025em}.action{margin:9px 0 0 22px;color:#c8ccd0;font-size:clamp(13px,1.25vw,18px);line-height:1.35}
-    .laeq-card{margin-top:14px;padding:15px 18px;border:1px solid rgba(255,255,255,.11);border-radius:18px;background:rgba(255,255,255,.035);display:flex;align-items:center;justify-content:space-between;gap:16px}.laeq-card[hidden]{display:none}.laeq-label{color:#a7b0b6;font-size:clamp(12px,1vw,15px);font-weight:650}.laeq-value{color:#e9f5ed;font-size:clamp(25px,2.5vw,38px);font-weight:650;white-space:nowrap;font-variant-numeric:tabular-nums}.laeq-unit{color:#84918b;font-size:.55em}
     .connection{margin-top:clamp(15px,1.6vw,22px);display:flex;align-items:center;gap:9px;color:#8f969d;font-size:clamp(12px,1.05vw,15px);font-weight:600;letter-spacing:.035em}.connection-dot{width:8px;height:8px;border-radius:50%;background:#676d73}.connection.connected .connection-dot{background:var(--low);box-shadow:0 0 13px rgba(74,222,128,.7)}.connection.disconnected .connection-dot{background:var(--high);box-shadow:0 0 13px rgba(251,90,90,.62)}.last-disconnect{margin:7px 0 0 17px;color:#6f767d;font-size:clamp(11px,.95vw,14px);font-variant-numeric:tabular-nums}
     .history{padding:clamp(22px,2.6vw,38px);display:grid;grid-template-rows:auto minmax(0,1fr) auto}.history-heading{display:flex;align-items:flex-end;justify-content:space-between;gap:18px}.history h2{margin:7px 0 0;color:#f2f4f5;font-size:clamp(22px,2.3vw,34px);font-weight:620;letter-spacing:-.035em}.window-label{padding-bottom:4px;color:#70777e;font-size:clamp(11px,1vw,14px);white-space:nowrap}
     .chart-wrap{position:relative;min-height:0;margin:clamp(16px,2vh,27px) 0 8px}canvas{position:absolute;inset:0;width:100%;height:100%}.legend{display:flex;align-items:center;gap:clamp(18px,2vw,30px);padding-top:13px;border-top:1px solid rgba(255,255,255,.065);color:#858c93;font-size:clamp(10px,.9vw,13px)}.legend-item{display:flex;align-items:center;gap:7px}.legend-mark{width:18px;height:3px;border-radius:20px}
-    .condition{display:block}.spectrum-panel{height:100%;min-height:0;border-radius:28px;padding:clamp(22px,2.6vw,38px);display:grid;grid-template-rows:auto minmax(0,1fr) auto}.spectrum-panel h2{margin:7px 0 0;color:#f2f4f5;font-size:clamp(22px,2.3vw,34px);font-weight:620;letter-spacing:-.035em}.spectrum-panel .chart-wrap{margin:clamp(20px,2.5vh,32px) 0 10px}.spectrum-footer{display:flex;justify-content:space-between;align-items:center;gap:16px;padding-top:13px;border-top:1px solid rgba(255,255,255,.065);color:#858c93;font-size:clamp(11px,.95vw,14px)}.spectrum-legend{display:flex;align-items:center;gap:20px}.spectrum-legend .legend-mark{display:inline-block;vertical-align:middle;margin-right:7px}.spectrum-footer .connection{margin:0}
     @supports not (backdrop-filter:blur(1px)){.glass{background:rgba(18,20,22,.94)}}
     @media (orientation:landscape) and (max-height:620px){.shell{padding:12px;gap:12px}.topbar{min-height:66px;border-radius:19px}.reading,.history{border-radius:22px}.reading{padding:20px 26px}.history{padding:19px 24px}.level{font-size:clamp(90px,13vw,174px)}.unit{margin-top:42px}.status-card{padding:14px 17px}.connection{margin-top:11px}.chart-wrap{margin-top:12px}}
-    @media(max-width:900px){html,body{overflow:auto}.shell{height:auto;min-height:100dvh}.content{grid-template-columns:1fr}.reading{min-height:520px}.history{min-height:430px}.spectrum-panel{height:calc(100dvh - 180px);min-height:430px}}
-    @media(max-width:560px){.topbar{gap:12px}.topbar h1{font-size:clamp(18px,5vw,24px);white-space:normal;line-height:1.1}.logo-wrap{width:90px}.tabs{display:grid;grid-template-columns:1fr 1fr}.tab{padding:10px 8px}.spectrum-footer{align-items:flex-start;flex-direction:column}.spectrum-legend{gap:12px}.laeq-card{padding:12px 14px}}
+    @media(max-width:900px){html,body{overflow:auto}.shell{height:auto;min-height:100dvh}.content{grid-template-columns:1fr}.reading{min-height:520px}.history{min-height:430px}}
   </style>
 </head>
 <body>
@@ -40,16 +36,11 @@
       <div><div class="eyebrow">Live acoustic monitoring</div><h1>1 SPD Chiller Plant Room</h1></div>
       <div class="logo-wrap"><img src="/logo.png" alt="Company logo" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"><div class="logo-fallback">SP GROUP</div></div>
     </header>
-    <nav class="tabs" role="tablist" aria-label="Dashboard views">
-      <button id="noiseTab" class="tab" type="button" role="tab" aria-selected="true" aria-controls="noisePanel" tabindex="0">Noise Level</button>
-      <button id="conditionTab" class="tab" type="button" role="tab" aria-selected="false" aria-controls="conditionPanel" tabindex="-1">Condition Monitoring</button>
-    </nav>
-    <section id="noisePanel" class="content" role="tabpanel" aria-labelledby="noiseTab">
+    <section class="content">
       <article class="reading glass">
         <div class="panel-label">Current sound level</div>
         <div class="level-row"><div id="currentLevel" class="level">--.-</div><div class="unit">dB(A)</div></div>
         <div class="status-card"><div class="status-line"><span class="state-dot"></span><span id="statusName" class="status-name">Waiting for reading</span></div><p id="actionText" class="action">Monitoring will begin when the first measurement arrives.</p></div>
-        <div id="laeqCard" class="laeq-card" hidden><span class="laeq-label">LAeq · past 5 minutes</span><span class="laeq-value"><span id="laeqValue"></span> <span class="laeq-unit">dB(A)</span></span></div>
         <div id="connection" class="connection disconnected"><span class="connection-dot"></span><span id="connectionText">Sensor disconnected</span></div>
         <div id="lastDisconnect" class="last-disconnect">Disconnect detected at: Never</div>
       </article>
@@ -59,68 +50,23 @@
         <div class="legend"><div class="legend-item"><span class="legend-mark" style="background:var(--low)"></span><span>Low &lt; 70</span></div><div class="legend-item"><span class="legend-mark" style="background:var(--moderate)"></span><span>Moderate 70–79.9</span></div><div class="legend-item"><span class="legend-mark" style="background:var(--high)"></span><span>High ≥ 80</span></div></div>
       </article>
     </section>
-    <section id="conditionPanel" class="content condition" role="tabpanel" aria-labelledby="conditionTab" hidden>
-      <article class="spectrum-panel glass">
-        <div class="history-heading"><div><div class="panel-label">Condition monitoring</div><h2>Live frequency spectrum</h2></div><div class="window-label">20 Hz – 20 kHz · dB(Z)</div></div>
-        <div class="chart-wrap"><canvas id="spectrumCanvas" aria-label="Live frequency spectrum from 20 Hz to 20 kHz"></canvas></div>
-        <div class="spectrum-footer"><div class="spectrum-legend"><span><span class="legend-mark" style="background:#a7edc2"></span>Live level</span><span><span class="legend-mark" style="background:#a5a9ae"></span>Recent peak</span></div><div id="conditionConnection" class="connection disconnected"><span class="connection-dot"></span><span id="conditionConnectionText">Sensor disconnected</span></div></div>
-      </article>
-    </section>
   </main>
   <script>
     "use strict";
-    const POLL_MS=350,FETCH_TIMEOUT_MS=2500,OFFLINE_MS=4000,LIMIT=60,SPECTRUM_BANDS=128,LAST_DISCONNECT_KEY="spdLastDisconnectAt",C={low:"#4ade80",moderate:"#fbbf24",high:"#fb5a5a"};
-    const history=[];let spectrumLevels=[],spectrumPeaks=[],spectrumHz=[],lastID=null,lastUptime=null,lastContact=0,busy=false,stateKey="moderate",connectionState=null,lastDisconnectAt=loadLastDisconnect(),activeTab="noise";
+    const POLL_MS=350,FETCH_TIMEOUT_MS=2500,OFFLINE_MS=4000,LIMIT=60,LAST_DISCONNECT_KEY="spdLastDisconnectAt",C={low:"#4ade80",moderate:"#fbbf24",high:"#fb5a5a"};
+    const history=[];let lastID=null,lastContact=0,busy=false,stateKey="moderate",connectionState=null,lastDisconnectAt=loadLastDisconnect();
     const levelEl=document.getElementById("currentLevel"),statusEl=document.getElementById("statusName"),actionEl=document.getElementById("actionText"),connectionEl=document.getElementById("connection"),connectionText=document.getElementById("connectionText"),lastDisconnectEl=document.getElementById("lastDisconnect"),canvas=document.getElementById("historyCanvas");
-    const noiseTab=document.getElementById("noiseTab"),conditionTab=document.getElementById("conditionTab"),noisePanel=document.getElementById("noisePanel"),conditionPanel=document.getElementById("conditionPanel"),spectrumCanvas=document.getElementById("spectrumCanvas"),laeqCard=document.getElementById("laeqCard"),laeqValue=document.getElementById("laeqValue"),conditionConnection=document.getElementById("conditionConnection"),conditionConnectionText=document.getElementById("conditionConnectionText");
     function classify(v){if(v<70)return{key:"low",label:"Low noise",action:"Continue normal monitoring."};if(v<80)return{key:"moderate",label:"Moderate noise",action:"Ear plugs recommended."};return{key:"high",label:"High noise",action:"Ear plugs recommended. Avoid prolonged exposure."}}
     function updateReading(v){const s=classify(v);stateKey=s.key;document.documentElement.style.setProperty("--state",C[s.key]);levelEl.textContent=v.toFixed(1);statusEl.textContent=s.label;actionEl.textContent=s.action}
     function loadLastDisconnect(){try{const value=Number(localStorage.getItem(LAST_DISCONNECT_KEY));return Number.isFinite(value)&&value>0?value:null}catch(e){console.warn("Could not load the last disconnect time.",e);return null}}
     function renderLastDisconnect(){lastDisconnectEl.textContent="Disconnect detected at: "+(lastDisconnectAt===null?"Never":new Date(lastDisconnectAt).toLocaleString())}
     function recordDisconnect(){lastDisconnectAt=Date.now();try{localStorage.setItem(LAST_DISCONNECT_KEY,String(lastDisconnectAt))}catch(e){console.warn("Could not save the last disconnect time.",e)}renderLastDisconnect()}
-    function setConnection(ok){if(connectionState===true&&!ok)recordDisconnect();if(!ok&&connectionState!==false){laeqCard.hidden=true;spectrumLevels=[];spectrumPeaks=[];spectrumHz=[];drawSpectrum()}connectionState=ok;for(const el of [connectionEl,conditionConnection]){el.classList.toggle("connected",ok);el.classList.toggle("disconnected",!ok)}connectionText.textContent=conditionConnectionText.textContent=ok?"Sensor connected":"Sensor disconnected"}
+    function setConnection(ok){if(connectionState===true&&!ok)recordDisconnect();connectionState=ok;connectionEl.classList.toggle("connected",ok);connectionEl.classList.toggle("disconnected",!ok);connectionText.textContent=ok?"Sensor connected":"Sensor disconnected"}
     function prep(){const r=canvas.getBoundingClientRect(),d=Math.max(1,devicePixelRatio||1),w=Math.max(1,Math.round(r.width*d)),h=Math.max(1,Math.round(r.height*d));if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h}const x=canvas.getContext("2d");x.setTransform(d,0,0,d,0,0);return{x,w:r.width,h:r.height}}
     function draw(){const{ x,w,h}=prep();x.clearRect(0,0,w,h);const p={l:48,r:14,t:18,b:30},pw=Math.max(1,w-p.l-p.r),ph=Math.max(1,h-p.t-p.b);let lo=50,hi=100;if(history.length){lo=Math.floor((Math.min(...history)-5)/10)*10;hi=Math.ceil((Math.max(...history)+5)/10)*10;if(hi-lo<20)hi=lo+20}const yFor=v=>p.t+ph-((v-lo)/(hi-lo))*ph;x.font="12px -apple-system,sans-serif";x.textBaseline="middle";x.textAlign="right";for(let i=0;i<=4;i++){const f=i/4,y=p.t+f*ph,v=hi-f*(hi-lo);x.strokeStyle="rgba(255,255,255,.07)";x.lineWidth=1;x.beginPath();x.moveTo(p.l,y);x.lineTo(p.l+pw,y);x.stroke();x.fillStyle="#6f767d";x.fillText(v.toFixed(0),p.l-10,y)}[{v:70,c:"rgba(251,191,36,.24)"},{v:80,c:"rgba(251,90,90,.24)"}].forEach(t=>{if(t.v<=lo||t.v>=hi)return;const y=yFor(t.v);x.strokeStyle=t.c;x.setLineDash([5,6]);x.beginPath();x.moveTo(p.l,y);x.lineTo(p.l+pw,y);x.stroke();x.setLineDash([])});if(history.length>1){const pts=history.map((v,i)=>({x:p.l+i/Math.max(1,LIMIT-1)*pw,y:yFor(v)})),g=x.createLinearGradient(0,p.t,0,p.t+ph);g.addColorStop(0,C[stateKey]+"38");g.addColorStop(1,C[stateKey]+"00");x.beginPath();x.moveTo(pts[0].x,p.t+ph);pts.forEach(q=>x.lineTo(q.x,q.y));x.lineTo(pts.at(-1).x,p.t+ph);x.closePath();x.fillStyle=g;x.fill();x.beginPath();pts.forEach((q,i)=>i?x.lineTo(q.x,q.y):x.moveTo(q.x,q.y));x.strokeStyle=C[stateKey];x.lineWidth=3;x.lineJoin="round";x.lineCap="round";x.shadowColor=C[stateKey]+"70";x.shadowBlur=12;x.stroke();x.shadowBlur=0;const q=pts.at(-1);x.beginPath();x.arc(q.x,q.y,4,0,Math.PI*2);x.fillStyle=C[stateKey];x.fill()}x.fillStyle="#666d74";x.font="11px -apple-system,sans-serif";x.textBaseline="top";x.textAlign="left";x.fillText("Earlier",p.l,p.t+ph+11);x.textAlign="right";x.fillText("Now",p.l+pw,p.t+ph+11)}
-    function drawSpectrum(){
-      if(activeTab!=="condition")return;
-      const r=spectrumCanvas.getBoundingClientRect(),d=Math.max(1,devicePixelRatio||1),w=Math.max(1,Math.round(r.width*d)),h=Math.max(1,Math.round(r.height*d));
-      if(spectrumCanvas.width!==w||spectrumCanvas.height!==h){spectrumCanvas.width=w;spectrumCanvas.height=h}
-      const x=spectrumCanvas.getContext("2d");x.setTransform(d,0,0,d,0,0);x.clearRect(0,0,r.width,r.height);
-      const p={l:54,r:18,t:16,b:43},pw=Math.max(1,r.width-p.l-p.r),ph=Math.max(1,r.height-p.t-p.b);
-      const maxLevel=spectrumPeaks.length?Math.max(...spectrumPeaks):0,hi=Math.max(130,Math.ceil(maxLevel/25)*25);
-      const xFor=f=>p.l+Math.log(f/20)/Math.log(1000)*pw,yFor=v=>p.t+ph-Math.max(0,Math.min(hi,v))/hi*ph;
-      x.font="12px -apple-system,sans-serif";x.lineWidth=1;
-      for(const v of [0,25,50,75,100,125,hi]){const y=yFor(v);x.strokeStyle="rgba(255,255,255,.075)";x.beginPath();x.moveTo(p.l,y);x.lineTo(p.l+pw,y);x.stroke();x.fillStyle="#899198";x.textAlign="right";x.textBaseline="middle";x.fillText(String(v),p.l-10,y)}
-      for(const [f,label] of [[20,"20"],[50,"50"],[200,"200"],[500,"500"],[2000,"2k"],[5000,"5k"],[20000,"20k"]]){const px=xFor(f);x.strokeStyle="rgba(255,255,255,.055)";x.beginPath();x.moveTo(px,p.t);x.lineTo(px,p.t+ph);x.stroke();x.fillStyle="#abb2b8";x.textAlign=f===20?"left":f===20000?"right":"center";x.textBaseline="top";x.fillText(label,px,p.t+ph+14)}
-      if(!spectrumLevels.length){x.fillStyle="#858f96";x.textAlign="center";x.textBaseline="middle";x.fillText("Waiting for live spectrum",p.l+pw/2,p.t+ph/2);return}
-      const points=spectrumLevels.map((v,i)=>({x:xFor(spectrumHz[i]),y:yFor(v)}));
-      const peaks=spectrumPeaks.map((v,i)=>({x:points[i].x,y:yFor(v)}));
-      x.beginPath();peaks.forEach((q,i)=>i?x.lineTo(q.x,q.y):x.moveTo(q.x,q.y));x.strokeStyle="rgba(195,199,204,.75)";x.lineWidth=1.7;x.lineJoin="round";x.stroke();
-      const fill=x.createLinearGradient(0,p.t,0,p.t+ph);fill.addColorStop(0,"rgba(248,221,120,.26)");fill.addColorStop(.55,"rgba(110,226,166,.16)");fill.addColorStop(1,"rgba(80,216,215,.015)");
-      x.beginPath();x.moveTo(points[0].x,p.t+ph);points.forEach(q=>x.lineTo(q.x,q.y));x.lineTo(points.at(-1).x,p.t+ph);x.closePath();x.fillStyle=fill;x.fill();
-      const line=x.createLinearGradient(p.l,0,p.l+pw,0);line.addColorStop(0,"#65ddd0");line.addColorStop(.45,"#a9eabc");line.addColorStop(.7,"#f4dd87");line.addColorStop(1,"#80ddd2");
-      x.beginPath();points.forEach((q,i)=>i?x.lineTo(q.x,q.y):x.moveTo(q.x,q.y));x.strokeStyle=line;x.lineWidth=3;x.lineCap="round";x.lineJoin="round";x.shadowColor="rgba(129,231,183,.28)";x.shadowBlur=9;x.stroke();x.shadowBlur=0;
-    }
-    function setTab(name){activeTab=name;const noise=name==="noise";noisePanel.hidden=!noise;conditionPanel.hidden=noise;noiseTab.setAttribute("aria-selected",String(noise));conditionTab.setAttribute("aria-selected",String(!noise));noiseTab.tabIndex=noise?0:-1;conditionTab.tabIndex=noise?-1:0;if(noise)draw();else drawSpectrum()}
-    function onTabKey(e){if(!["ArrowLeft","ArrowRight","Home","End"].includes(e.key))return;e.preventDefault();const next=e.key==="Home"?"noise":e.key==="End"?"condition":activeTab==="noise"?"condition":"noise";setTab(next);(next==="noise"?noiseTab:conditionTab).focus()}
-    async function poll(){
-      if(busy)return;busy=true;const controller=new AbortController(),timeoutID=setTimeout(()=>controller.abort(),FETCH_TIMEOUT_MS);
-      try{
-        const r=await fetch("/data",{cache:"no-store",signal:controller.signal});if(!r.ok)throw Error(`HTTP ${r.status}`);
-        const d=await r.json(),now=Date.now(),uptime=Number(d.uptime_ms),age=Number(d.measurement_age_ms);
-        if(!Number.isFinite(uptime)||!Number.isFinite(age))throw Error("Invalid measurement timing");
-        if(lastUptime!==null&&uptime<lastUptime){lastID=null;history.length=0;spectrumLevels=[];spectrumPeaks=[];spectrumHz=[];laeqCard.hidden=true}lastUptime=uptime;
-        if(!d.ready||age>OFFLINE_MS){setConnection(false);return}
-        const v=Number(d.estimated_dba),id=Number(d.result_id),levels=d.spectrum_dbz,frequencies=d.spectrum_hz;
-        if(!Number.isFinite(v)||!Number.isFinite(id)||id<=0||!Array.isArray(levels)||levels.length!==SPECTRUM_BANDS||!levels.every(Number.isFinite)||!Array.isArray(frequencies)||frequencies.length!==SPECTRUM_BANDS||!frequencies.every((f,i)=>Number.isFinite(f)&&f>=20&&f<=20000&&(i===0||f>frequencies[i-1])))throw Error("Invalid measurement payload");
-        lastContact=now;setConnection(true);
-        const laeq=d.laeq_5m;if(d.laeq_5m_ready&&typeof laeq==="number"&&Number.isFinite(laeq)){laeqValue.textContent=laeq.toFixed(1);laeqCard.hidden=false}else laeqCard.hidden=true;
-        if(id!==lastID){lastID=id;updateReading(v);history.push(v);while(history.length>LIMIT)history.shift();spectrumLevels=levels;spectrumHz=frequencies;spectrumPeaks=levels.map((value,i)=>Math.max(value,(spectrumPeaks[i]??value)-.4));if(activeTab==="noise")draw();else drawSpectrum()}
-      }catch(e){if(e.name!=="AbortError")console.error(e)}finally{clearTimeout(timeoutID);busy=false}
-    }
+    async function poll(){if(busy)return;busy=true;const controller=new AbortController(),timeoutID=setTimeout(()=>controller.abort(),FETCH_TIMEOUT_MS);try{const r=await fetch("/data",{cache:"no-store",signal:controller.signal});if(!r.ok)throw Error(`HTTP ${r.status}`);const d=await r.json();lastContact=Date.now();setConnection(true);if(!d.ready)return;const v=Number(d.estimated_dba),id=Number(d.result_id);if(!Number.isFinite(v)||!Number.isFinite(id))throw Error("Invalid payload");if(id!==lastID){lastID=id;updateReading(v);history.push(v);while(history.length>LIMIT)history.shift();draw()}}catch(e){if(e.name!=="AbortError")console.error(e)}finally{clearTimeout(timeoutID);busy=false}}
     function check(){setConnection(lastContact>0&&Date.now()-lastContact<=OFFLINE_MS)}
-    noiseTab.addEventListener("click",()=>setTab("noise"));conditionTab.addEventListener("click",()=>setTab("condition"));noiseTab.addEventListener("keydown",onTabKey);conditionTab.addEventListener("keydown",onTabKey);
-    addEventListener("resize",()=>activeTab==="noise"?draw():drawSpectrum());renderLastDisconnect();draw();poll();setInterval(poll,POLL_MS);setInterval(check,500);
+    addEventListener("resize",draw);renderLastDisconnect();draw();poll();setInterval(poll,POLL_MS);setInterval(check,500);
   </script>
 </body>
 </html>

@@ -5,20 +5,19 @@ This project runs without internet access.
 The ESP32-S3:
 
 1. Reads the INMP441 over I2S.
-2. Calculates estimated dB(A), five-minute LAeq, and a live 128-point dB(Z) frequency spectrum.
+2. Calculates dBFS, dBFS(A), estimated dBA and a real 32-band spectrum.
 3. Creates the Wi-Fi network `SPD_Noise_Monitor`.
-4. Hosts the two-tab noise and condition monitoring dashboard from LittleFS.
+4. Hosts the dashboard from LittleFS.
 5. Serves current measurements from `http://192.168.4.1/data`.
 
 ## Project structure
 
 ```text
-SPD_Noise_Monitor_Offline_Glass/
-├── SPD_Noise_Monitor_Offline_Glass.ino
+SPD_Noise_Monitor_Offline/
+├── SPD_Noise_Monitor_Offline.ino
 ├── README.md
 └── data/
-    ├── index.html
-    └── logo.png
+    └── index.html
 ```
 
 The folder and `.ino` filename must remain identical for Arduino IDE.
@@ -38,7 +37,7 @@ The folder and `.ino` filename must remain identical for Arduino IDE.
 |---|---:|
 | SCK / BCLK | GPIO 18 |
 | WS / LRCLK | GPIO 16 |
-| SD / DOUT | GPIO 17 |
+| SD / DOUT | GPIO 36 |
 | L/R | GND for left channel |
 | VDD | 3.3 V |
 | GND | GND |
@@ -47,7 +46,7 @@ Do not power the INMP441 from 5 V.
 
 ## Arduino IDE upload sequence
 
-1. Open `SPD_Noise_Monitor_Offline_Glass.ino`.
+1. Open `SPD_Noise_Monitor_Offline.ino`.
 2. Select the correct ESP32-S3 board and port.
 3. Install `arduinoFFT` through Library Manager.
 4. Set a partition scheme that provides sufficient filesystem space.
@@ -109,7 +108,7 @@ Confirm the I2S GPIO assignments match the actual wiring:
 ```cpp
 #define I2S_BCLK  18
 #define I2S_LRCLK 16
-#define I2S_DIN   17
+#define I2S_DIN   36
 ```
 
 After calibration, update:
@@ -118,17 +117,7 @@ After calibration, update:
 const double CALIB_CONST = 123.01;
 ```
 
-Until calibration is performed with a suitable reference, treat the displayed dB(A) and dB(Z) results as estimates.
-
-## Dashboard views
-
-- **Noise Level** is the default view. It retains the current dB(A) reading, noise status, connection indicator, and latest 60 readings. A five-minute LAeq card appears only after the ESP32 has collected five minutes of A-weighted measurements.
-- **Condition Monitoring** shows a live 20 Hz–20 kHz, 128-point dB(Z) spectrum. Each point contains at least one FFT bin, and the chart uses the actual center frequency reported for each band. The colored trace is the current measurement; the gray trace is a decaying recent peak. The FFT remains at 4,096 samples and 48 kHz, so its bin spacing remains about 11.7 Hz.
-- LAeq uses an energy average calculated on the ESP32. A temporary tablet or Wi-Fi disconnection hides the value while the feed is stale, but does not reset the ESP32's measurement window. A measurement interruption longer than two seconds, or an ESP32 restart, starts a new five-minute collection period.
-
-The CSV logger and `/log.csv` download endpoint have been removed. The dashboard does not write measurement history to flash.
-
-These measurements show acoustic changes only; they do not classify equipment faults.
+Until calibration is performed with a suitable reference, treat the dashboard result as estimated dBA.
 
 ## Local endpoints
 
@@ -136,8 +125,8 @@ These measurements show acoustic changes only; they do not classify equipment fa
 |---|---|
 | `http://192.168.4.1/` | Dashboard |
 | `http://192.168.4.1/data` | Latest measurement JSON |
-| `http://192.168.4.1/logo.png` | Dashboard logo from LittleFS |
 
 ## Dashboard dependencies
 
 The dashboard uses only HTML, CSS, JavaScript and native canvas. It does not load Firebase, Chart.js, fonts or other resources from the internet.
+

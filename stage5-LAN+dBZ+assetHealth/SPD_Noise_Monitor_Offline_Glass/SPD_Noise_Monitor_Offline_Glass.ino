@@ -46,24 +46,14 @@ const uint32_t LEVEL_SAMPLE_COUNT =
 const double LEVEL_DURATION_SECONDS =
   (double)LEVEL_SAMPLE_COUNT / SAMPLE_RATE;
 
+// Five minutes of complete, equal-duration measurements.
+constexpr uint16_t LAEQ_RESULTS =
+  (300UL * SAMPLE_RATE + LEVEL_SAMPLE_COUNT - 1) /
+  LEVEL_SAMPLE_COUNT;
+const uint32_t MAX_MEASUREMENT_GAP_MS = 2000;
+
 // INMP441 signed 24-bit PCM in 32-bit I2S word.
 const double PCM_FULL_SCALE = 8388608.0;  // 2^23
-
-// =====================================================
-// HISTORICAL LOGGING SETTINGS
-// =====================================================
-
-// Target duration of one historical CSV record.
-const double LOG_INTERVAL_SECONDS = 10.0;
-
-// Number of normal measurement results to combine
-// into approximately one 10-second log entry.
-const uint16_t RESULTS_PER_LOG =
-  (uint16_t)round(
-    LOG_INTERVAL_SECONDS / LEVEL_DURATION_SECONDS
-  );
-
-const char* LOG_FILE = "/acoustic_log.csv";
 
 // =====================================================
 // I2S AND FFT BUFFERS
@@ -86,52 +76,25 @@ uint16_t fftIndex = 0;
 
 // =====================================================
 // REAL SPECTRUM OUTPUT FOR DASHBOARD
-// 32 logarithmic bands from 20 Hz to 20 kHz.
+// 128 bands from 20 Hz to 20 kHz. Every band contains
+// at least one real FFT bin, including at low frequencies.
 // =====================================================
 
-const uint8_t SPECTRUM_BANDS = 32;
+const uint8_t SPECTRUM_BANDS = 128;
 const double SPECTRUM_MIN_HZ = 20.0;
 const double SPECTRUM_MAX_HZ = 20000.0;
 const double SPECTRUM_DYNAMIC_RANGE_DB = 60.0;
 
 double accumulatedSpectrumEnergy[SPECTRUM_BANDS] =
   {0.0};
+uint16_t spectrumEdges[SPECTRUM_BANDS + 1] = {0};
+double spectrumHz[SPECTRUM_BANDS] = {0.0};
 
-// =====================================================
-// ASSET-MONITORING FREQUENCY BANDS
-// These are independent from the 32 dashboard bands.
-// =====================================================
-
-const uint8_t ASSET_BANDS = 8;
-
-const double ASSET_BAND_LOW[ASSET_BANDS] =
-{
-  60.0,
-  120.0,
-  250.0,
-  500.0,
-  1000.0,
-  2000.0,
-  4000.0,
-  8000.0
-};
-
-const double ASSET_BAND_HIGH[ASSET_BANDS] =
-{
-  120.0,
-  250.0,
-  500.0,
-  1000.0,
-  2000.0,
-  4000.0,
-  8000.0,
-  15000.0
-};
-
-// Accumulated mean-square energy across
-// FRAMES_PER_LEVEL FFT frames.
-double accumulatedAssetBandMS[ASSET_BANDS] =
-  {0.0};
+float laeqWindowEnergy[LAEQ_RESULTS] = {0.0f};
+double laeqEnergySum = 0.0;
+uint16_t laeqWindowCount = 0;
+uint16_t laeqWindowNext = 0;
+uint32_t lastMeasurementMs = 0;
 
 // =====================================================
 // SHORT-TERM MEASUREMENT ACCUMULATORS
@@ -142,22 +105,6 @@ double accumulatedWeightedMS = 0.0;
 double accumulatedDominantFrequency = 0.0;
 
 uint8_t accumulatedFrames = 0;
-
-// =====================================================
-// 10-SECOND LOGGING ACCUMULATORS
-// Store energies rather than averaging dB directly.
-// =====================================================
-
-double logSumUnweightedMS = 0.0;
-double logSumWeightedMS = 0.0;
-
-double logSumAssetBandMS[ASSET_BANDS] =
-  {0.0};
-
-double logSumDominantFrequency = 0.0;
-
-uint16_t logResultCount = 0;
-unsigned long logRecordID = 0;
 
 // =====================================================
 // SHARED RESULTS
@@ -177,8 +124,13 @@ double latestFFTError = 0.0;
 
 double latestEstimatedDBA = 0.0;
 double latestEstimatedDBZ = 0.0;
+double latestLaeq5m = 0.0;
+bool latestLaeq5mReady = false;
+uint32_t latestMeasurementMs = 0;
 
 double latestSpectrum[SPECTRUM_BANDS] =
+  {0.0};
+double latestSpectrumDBZ[SPECTRUM_BANDS] =
   {0.0};
 
 unsigned long latestResultID = 0;
@@ -241,298 +193,35 @@ double calculateAWeightPowerGain(double frequency)
 // DASHBOARD SPECTRUM BAND MAPPING
 // =====================================================
 
-int spectrumBandForFrequency(double frequency)
+void setupSpectrumBands()
 {
-  if (
-    frequency < SPECTRUM_MIN_HZ ||
-    frequency > SPECTRUM_MAX_HZ
-  )
+  const double hzPerBin = (double)SAMPLE_RATE / FFT_SIZE;
+  const uint16_t lastEdge =
+    (uint16_t)floor(SPECTRUM_MAX_HZ / hzPerBin) + 1;
+
+  spectrumEdges[0] =
+    (uint16_t)ceil(SPECTRUM_MIN_HZ / hzPerBin);
+
+  for (uint16_t i = 1; i < SPECTRUM_BANDS; i++)
   {
-    return -1;
+    const double frequency = SPECTRUM_MIN_HZ *
+      pow(SPECTRUM_MAX_HZ / SPECTRUM_MIN_HZ,
+          (double)i / SPECTRUM_BANDS);
+    const uint16_t idealEdge = (uint16_t)ceil(frequency / hzPerBin);
+    const uint16_t minimumEdge = spectrumEdges[i - 1] + 1;
+    const uint16_t maximumEdge = lastEdge - (SPECTRUM_BANDS - i);
+    spectrumEdges[i] =
+      max(minimumEdge, min(idealEdge, maximumEdge));
   }
+  spectrumEdges[SPECTRUM_BANDS] = lastEdge;
 
-  const double position =
-    log(
-      frequency /
-      SPECTRUM_MIN_HZ
-    ) /
-    log(
-      SPECTRUM_MAX_HZ /
-      SPECTRUM_MIN_HZ
-    );
-
-  int band =
-    (int)floor(
-      position * SPECTRUM_BANDS
-    );
-
-  if (band < 0)
+  for (uint16_t i = 0; i < SPECTRUM_BANDS; i++)
   {
-    band = 0;
-  }
-
-  if (band >= SPECTRUM_BANDS)
-  {
-    band =
-      SPECTRUM_BANDS - 1;
-  }
-
-  return band;
-}
-
-// =====================================================
-// CSV LOG FILE
-// =====================================================
-
-void initialiseLogFile()
-{
-  if (!LittleFS.exists(LOG_FILE))
-  {
-    File file =
-      LittleFS.open(
-        LOG_FILE,
-        FILE_WRITE
-      );
-
-    if (!file)
-    {
-      Serial.println(
-        "[LOG] Failed to create CSV."
-      );
-      return;
-    }
-
-    file.println(
-      "record_id,"
-      "uptime_ms,"
-      "window_s,"
-      "dba_est,"
-      "dbfs_z,"
-      "dbz_est,"
-      "dominant_hz,"
-      "b60_120,"
-      "b120_250,"
-      "b250_500,"
-      "b500_1000,"
-      "b1000_2000,"
-      "b2000_4000,"
-      "b4000_8000,"
-      "b8000_15000"
-    );
-
-    file.close();
-
-    Serial.println(
-      "[LOG] CSV created."
+    spectrumHz[i] = hzPerBin * sqrt(
+      (double)spectrumEdges[i] *
+      (spectrumEdges[i + 1] - 1)
     );
   }
-  else
-  {
-    Serial.println(
-      "[LOG] Existing CSV found."
-    );
-  }
-}
-
-// =====================================================
-// WRITE ONE ~10 SECOND HISTORICAL RECORD
-// =====================================================
-
-void writeHistoricalLog()
-{
-  if (logResultCount == 0)
-  {
-    return;
-  }
-
-  const double averageUnweightedMS =
-    logSumUnweightedMS /
-    logResultCount;
-
-  const double averageWeightedMS =
-    logSumWeightedMS /
-    logResultCount;
-
-  double dbfsZ = -120.0;
-  double dbfsA = -120.0;
-
-  if (averageUnweightedMS > 1e-20)
-  {
-    dbfsZ =
-      10.0 *
-      log10(
-        averageUnweightedMS
-      );
-  }
-
-  if (averageWeightedMS > 1e-20)
-  {
-    dbfsA =
-      10.0 *
-      log10(
-        averageWeightedMS
-      );
-  }
-
-  const double estimatedDBZ =
-    dbfsZ + CALIB_CONST;
-
-  const double estimatedDBA =
-    dbfsA + CALIB_CONST;
-
-  const double averageDominantFrequency =
-    logSumDominantFrequency /
-    logResultCount;
-
-  double bandDB[ASSET_BANDS];
-
-  for (
-    uint8_t b = 0;
-    b < ASSET_BANDS;
-    b++
-  )
-  {
-    const double bandMS =
-      logSumAssetBandMS[b] /
-      logResultCount;
-
-    if (bandMS > 1e-20)
-    {
-      bandDB[b] =
-        10.0 * log10(bandMS);
-    }
-    else
-    {
-      bandDB[b] = -120.0;
-    }
-  }
-
-  logRecordID++;
-
-  File file =
-    LittleFS.open(
-      LOG_FILE,
-      FILE_APPEND
-    );
-
-  if (!file)
-  {
-    Serial.println(
-      "[LOG] Failed to open CSV."
-    );
-  }
-  else
-  {
-    file.print(logRecordID);
-    file.print(",");
-
-    file.print(millis());
-    file.print(",");
-
-    file.print(
-      logResultCount *
-      LEVEL_DURATION_SECONDS,
-      3
-    );
-    file.print(",");
-
-    file.print(
-      estimatedDBA,
-      2
-    );
-    file.print(",");
-
-    file.print(
-      dbfsZ,
-      2
-    );
-    file.print(",");
-
-    file.print(
-      estimatedDBZ,
-      2
-    );
-    file.print(",");
-
-    file.print(
-      averageDominantFrequency,
-      2
-    );
-
-    for (
-      uint8_t b = 0;
-      b < ASSET_BANDS;
-      b++
-    )
-    {
-      file.print(",");
-      file.print(
-        bandDB[b],
-        2
-      );
-    }
-
-    file.println();
-    file.close();
-
-    // Also emit machine-readable line
-    // to Serial for debugging.
-    Serial.print("LOG,");
-    Serial.print(logRecordID);
-    Serial.print(",");
-    Serial.print(millis());
-    Serial.print(",");
-    Serial.print(
-      estimatedDBA,
-      2
-    );
-    Serial.print(",");
-    Serial.print(
-      dbfsZ,
-      2
-    );
-    Serial.print(",");
-    Serial.print(
-      estimatedDBZ,
-      2
-    );
-    Serial.print(",");
-    Serial.print(
-      averageDominantFrequency,
-      2
-    );
-
-    for (
-      uint8_t b = 0;
-      b < ASSET_BANDS;
-      b++
-    )
-    {
-      Serial.print(",");
-      Serial.print(
-        bandDB[b],
-        2
-      );
-    }
-
-    Serial.println();
-  }
-
-  // Reset historical accumulators.
-  logSumUnweightedMS = 0.0;
-  logSumWeightedMS = 0.0;
-  logSumDominantFrequency = 0.0;
-
-  for (
-    uint8_t b = 0;
-    b < ASSET_BANDS;
-    b++
-  )
-  {
-    logSumAssetBandMS[b] = 0.0;
-  }
-
-  logResultCount = 0;
 }
 
 // =====================================================
@@ -592,10 +281,6 @@ void setupAccessPoint()
   Serial.print("Dashboard: http://");
   Serial.println(WiFi.softAPIP());
 
-  Serial.print("CSV log  : http://");
-  Serial.print(WiFi.softAPIP());
-  Serial.println("/log.csv");
-
   Serial.println(
     "=========================================="
   );
@@ -632,44 +317,17 @@ void sendIndexPage()
   file.close();
 }
 
-// =====================================================
-// CSV DOWNLOAD ENDPOINT
-// =====================================================
-
-void sendLogFile()
+void sendLogo()
 {
-  File file =
-    LittleFS.open(
-      LOG_FILE,
-      "r"
-    );
+  File file = LittleFS.open("/logo.png", "r");
 
   if (!file)
   {
-    server.send(
-      404,
-      "text/plain",
-      "acoustic_log.csv not found"
-    );
-
+    server.send(404, "text/plain", "logo.png not found");
     return;
   }
 
-  server.sendHeader(
-    "Cache-Control",
-    "no-store"
-  );
-
-  server.sendHeader(
-    "Content-Disposition",
-    "attachment; filename=acoustic_log.csv"
-  );
-
-  server.streamFile(
-    file,
-    "text/csv"
-  );
-
+  server.streamFile(file, "image/png");
   file.close();
 }
 
@@ -689,8 +347,12 @@ void sendMeasurementData()
   double fftError;
   double estimatedDBA;
   double estimatedDBZ;
+  double laeq5m;
+  bool laeq5mReady;
+  uint32_t measurementMs;
 
   double spectrum[SPECTRUM_BANDS];
+  double spectrumDBZ[SPECTRUM_BANDS];
 
   unsigned long resultID;
 
@@ -736,6 +398,9 @@ void sendMeasurementData()
 
   estimatedDBZ =
     latestEstimatedDBZ;
+  laeq5m = latestLaeq5m;
+  laeq5mReady = latestLaeq5mReady;
+  measurementMs = latestMeasurementMs;
 
   resultID =
     latestResultID;
@@ -748,12 +413,13 @@ void sendMeasurementData()
   {
     spectrum[i] =
       latestSpectrum[i];
+    spectrumDBZ[i] = latestSpectrumDBZ[i];
   }
 
   xSemaphoreGive(resultMutex);
 
   String json;
-  json.reserve(1500);
+  json.reserve(6000);
 
   json += "{";
 
@@ -778,6 +444,12 @@ void sendMeasurementData()
   json +=
     ",\"estimated_dba\":" +
     String(estimatedDBA, 2);
+
+  json += ",\"laeq_5m_ready\":";
+  json += laeq5mReady ? "true" : "false";
+  json += ",\"laeq_5m\":";
+  if (laeq5mReady) json += String(laeq5m, 2);
+  else json += "null";
 
   // Added, but existing frontend
   // does not need to use it.
@@ -834,6 +506,9 @@ void sendMeasurementData()
     ",\"uptime_ms\":" +
     String(millis());
 
+  json += ",\"measurement_age_ms\":" +
+    String(resultID > 0 ? (uint32_t)(millis() - measurementMs) : 0);
+
   json +=
     ",\"spectrum\":[";
 
@@ -853,6 +528,20 @@ void sendMeasurementData()
         spectrum[i],
         4
       );
+  }
+
+  json += "],\"spectrum_dbz\":[";
+  for (uint8_t i = 0; i < SPECTRUM_BANDS; i++)
+  {
+    if (i > 0) json += ",";
+    json += String(spectrumDBZ[i], 2);
+  }
+
+  json += "],\"spectrum_hz\":[";
+  for (uint8_t i = 0; i < SPECTRUM_BANDS; i++)
+  {
+    if (i > 0) json += ",";
+    json += String(spectrumHz[i], 1);
   }
 
   json += "]}";
@@ -898,8 +587,6 @@ void setupWebServer()
     );
   }
 
-  initialiseLogFile();
-
   server.on(
     "/",
     HTTP_GET,
@@ -912,11 +599,10 @@ void setupWebServer()
     sendMeasurementData
   );
 
-  // New CSV endpoint.
   server.on(
-    "/log.csv",
+    "/logo.png",
     HTTP_GET,
-    sendLogFile
+    sendLogo
   );
 
   server.on(
@@ -1131,37 +817,32 @@ void finishLevelMeasurement()
   const double estimatedDBZ =
     dbfs + CALIB_CONST;
 
-  // ===================================================
-  // ASSET BAND LEVELS FOR THIS BASE MEASUREMENT
-  // ===================================================
-
-  double assetBandMS[ASSET_BANDS];
-  double assetBandDB[ASSET_BANDS];
-
-  for (
-    uint8_t b = 0;
-    b < ASSET_BANDS;
-    b++
-  )
+  const uint32_t measurementMs = millis();
+  if (laeqWindowCount > 0 &&
+      measurementMs - lastMeasurementMs > MAX_MEASUREMENT_GAP_MS)
   {
-    assetBandMS[b] =
-      accumulatedAssetBandMS[b] /
-      accumulatedFrames;
-
-    if (assetBandMS[b] > 1e-20)
-    {
-      assetBandDB[b] =
-        10.0 *
-        log10(
-          assetBandMS[b]
-        );
-    }
-    else
-    {
-      assetBandDB[b] =
-        -120.0;
-    }
+    laeqWindowCount = 0;
+    laeqWindowNext = 0;
+    laeqEnergySum = 0.0;
   }
+  lastMeasurementMs = measurementMs;
+
+  if (laeqWindowCount == LAEQ_RESULTS)
+  {
+    laeqEnergySum -= laeqWindowEnergy[laeqWindowNext];
+  }
+  else
+  {
+    laeqWindowCount++;
+  }
+  laeqWindowEnergy[laeqWindowNext] = (float)averageMSA;
+  laeqEnergySum += laeqWindowEnergy[laeqWindowNext];
+  laeqWindowNext = (laeqWindowNext + 1) % LAEQ_RESULTS;
+
+  const bool laeqReady = laeqWindowCount == LAEQ_RESULTS;
+  const double laeq5m = laeqReady
+    ? 10.0 * log10(max(laeqEnergySum / LAEQ_RESULTS, 1e-12)) + CALIB_CONST
+    : 0.0;
 
   // ===================================================
   // DASHBOARD SPECTRUM
@@ -1170,6 +851,7 @@ void finishLevelMeasurement()
   double spectrumDisplay[
     SPECTRUM_BANDS
   ];
+  double spectrumDBZ[SPECTRUM_BANDS];
 
   double maximumBandEnergy =
     0.0;
@@ -1183,6 +865,10 @@ void finishLevelMeasurement()
     const double averageBandEnergy =
       accumulatedSpectrumEnergy[i] /
       accumulatedFrames;
+
+    spectrumDBZ[i] = averageBandEnergy > 1e-12
+      ? 10.0 * log10(averageBandEnergy) + CALIB_CONST
+      : -120.0 + CALIB_CONST;
 
     if (
       averageBandEnergy >
@@ -1269,6 +955,10 @@ void finishLevelMeasurement()
     latestEstimatedDBZ =
       estimatedDBZ;
 
+    latestLaeq5m = laeq5m;
+    latestLaeq5mReady = laeqReady;
+    latestMeasurementMs = measurementMs;
+
     for (
       uint8_t i = 0;
       i < SPECTRUM_BANDS;
@@ -1277,6 +967,7 @@ void finishLevelMeasurement()
     {
       latestSpectrum[i] =
         spectrumDisplay[i];
+      latestSpectrumDBZ[i] = spectrumDBZ[i];
     }
 
     latestResultID++;
@@ -1284,39 +975,6 @@ void finishLevelMeasurement()
     xSemaphoreGive(
       resultMutex
     );
-  }
-
-  // ===================================================
-  // ADD BASE MEASUREMENT INTO 10-SECOND LOG WINDOW
-  // ===================================================
-
-  logSumUnweightedMS +=
-    averageMS;
-
-  logSumWeightedMS +=
-    averageMSA;
-
-  logSumDominantFrequency +=
-    dominantFrequency;
-
-  for (
-    uint8_t b = 0;
-    b < ASSET_BANDS;
-    b++
-  )
-  {
-    logSumAssetBandMS[b] +=
-      assetBandMS[b];
-  }
-
-  logResultCount++;
-
-  if (
-    logResultCount >=
-    RESULTS_PER_LOG
-  )
-  {
-    writeHistoricalLog();
   }
 
   // ===================================================
@@ -1390,16 +1048,9 @@ void finishLevelMeasurement()
   );
   Serial.println(" Hz");
 
-  Serial.print(
-    "Log progress     : "
-  );
-  Serial.print(
-    logResultCount
-  );
-  Serial.print("/");
-  Serial.println(
-    RESULTS_PER_LOG
-  );
+  Serial.print("LAeq 5 min       : ");
+  if (laeqReady) Serial.println(laeq5m, 2);
+  else Serial.println("collecting");
 
   Serial.println(
     "=========================================="
@@ -1431,15 +1082,6 @@ void finishLevelMeasurement()
       0.0;
   }
 
-  for (
-    uint8_t b = 0;
-    b < ASSET_BANDS;
-    b++
-  )
-  {
-    accumulatedAssetBandMS[b] =
-      0.0;
-  }
 }
 
 // =====================================================
@@ -1555,10 +1197,11 @@ void processFFTFrame()
   double maxBinEnergy = 0.0;
   uint16_t maxBin = 0;
 
-  double assetBandRawEnergy[
-    ASSET_BANDS
-  ] =
-  {0.0};
+  const double normalization =
+    (double)FFT_SIZE *
+    (double)FFT_SIZE *
+    U;
+  uint8_t spectrumBand = 0;
 
   for (
     uint16_t k = 0;
@@ -1605,42 +1248,18 @@ void processFFTFrame()
           frequency
         );
 
-      // Existing dashboard spectrum
-      const int spectrumBand =
-        spectrumBandForFrequency(
-          frequency
-        );
-
-      if (
-        spectrumBand >= 0
-      )
+      // Bin-aware logarithmic bands, with no empty low bands.
+      if (k >= spectrumEdges[0] &&
+          k < spectrumEdges[SPECTRUM_BANDS])
       {
+        while (k >= spectrumEdges[spectrumBand + 1])
+        {
+          spectrumBand++;
+        }
         accumulatedSpectrumEnergy[
           spectrumBand
         ] +=
-          binEnergy;
-      }
-
-      // New asset-monitoring bands
-      for (
-        uint8_t b = 0;
-        b < ASSET_BANDS;
-        b++
-      )
-      {
-        if (
-          frequency >=
-            ASSET_BAND_LOW[b]
-          &&
-          frequency <
-            ASSET_BAND_HIGH[b]
-        )
-        {
-          assetBandRawEnergy[b] +=
-            binEnergy;
-
-          break;
-        }
+          binEnergy / normalization;
       }
 
       if (
@@ -1662,11 +1281,6 @@ void processFFTFrame()
   // 5. Parseval + Hann normalisation
   // ---------------------------------------------------
 
-  const double normalization =
-    (double)FFT_SIZE *
-    (double)FFT_SIZE *
-    U;
-
   const double fftMeanSquare =
     max(
       0.0,
@@ -1680,18 +1294,6 @@ void processFFTFrame()
       weightedEnergy /
       normalization
     );
-
-  // Normalise each asset-monitoring band.
-  for (
-    uint8_t b = 0;
-    b < ASSET_BANDS;
-    b++
-  )
-  {
-    accumulatedAssetBandMS[b] +=
-      assetBandRawEnergy[b] /
-      normalization;
-  }
 
   const double fftRMS =
     sqrt(
@@ -1869,7 +1471,7 @@ void setup()
   );
 
   Serial.println(
-    "OFFLINE INMP441 NOISE + ACOUSTIC LOGGER"
+    "OFFLINE INMP441 NOISE + CONDITION MONITOR"
   );
 
   Serial.print(
@@ -1902,31 +1504,9 @@ void setup()
   );
   Serial.println(" s");
 
-  Serial.print(
-    "Log target        : "
-  );
-  Serial.print(
-    LOG_INTERVAL_SECONDS,
-    1
-  );
-  Serial.println(" s");
-
-  Serial.print(
-    "Results per log   : "
-  );
-  Serial.println(
-    RESULTS_PER_LOG
-  );
-
-  Serial.print(
-    "Actual log window : "
-  );
-  Serial.print(
-    RESULTS_PER_LOG *
-    LEVEL_DURATION_SECONDS,
-    3
-  );
-  Serial.println(" s");
+  Serial.print("LAeq window       : ");
+  Serial.print(LAEQ_RESULTS * LEVEL_DURATION_SECONDS, 3);
+  Serial.println(" s sampled audio");
 
   Serial.print(
     "Calibration const.: "
@@ -1957,6 +1537,7 @@ void setup()
     }
   }
 
+  setupSpectrumBands();
   setupI2S();
   setupAccessPoint();
   setupWebServer();

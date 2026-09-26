@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#050607">
+  <title>1 SPD Chiller Plant Room</title>
+  <style>
+    :root{--bg:#050607;--glass:rgba(255,255,255,.055);--line:rgba(255,255,255,.11);--text:#f5f7f8;--muted:#91989f;--low:#4ade80;--moderate:#fbbf24;--high:#fb5a5a;--state:var(--moderate)}
+    *{box-sizing:border-box}html,body{width:100%;height:100%;margin:0;overflow:hidden}
+    body{color:var(--text);background:radial-gradient(circle at 14% 8%,rgba(255,255,255,.075),transparent 27%),radial-gradient(circle at 88% 85%,rgba(70,79,90,.2),transparent 31%),linear-gradient(145deg,#030405,#0a0c0e 52%,#030405);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;-webkit-font-smoothing:antialiased}
+    body:before{content:"";position:fixed;inset:0;pointer-events:none;background-image:linear-gradient(rgba(255,255,255,.012) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.012) 1px,transparent 1px);background-size:42px 42px;mask-image:linear-gradient(to bottom,#000,transparent 90%)}
+    .shell{position:relative;width:100%;height:100dvh;min-height:560px;padding:clamp(14px,1.8vw,28px);display:grid;grid-template-rows:auto minmax(0,1fr);gap:clamp(12px,1.4vw,20px)}
+    .glass{background:var(--glass);border:1px solid var(--line);box-shadow:inset 0 1px 0 rgba(255,255,255,.055),0 24px 65px rgba(0,0,0,.34);backdrop-filter:blur(22px) saturate(120%);-webkit-backdrop-filter:blur(22px) saturate(120%)}
+    .topbar{min-height:clamp(68px,8vh,96px);padding:11px clamp(17px,2vw,30px);border-radius:23px;display:flex;align-items:center;justify-content:space-between;gap:24px}
+    .eyebrow,.panel-label{color:var(--muted);font-size:clamp(10px,.82vw,13px);font-weight:700;letter-spacing:.17em;text-transform:uppercase}.eyebrow{margin-bottom:6px;color:#737a82}
+    h1{margin:0;color:#f7f8f9;font-size:clamp(22px,2.6vw,42px);font-weight:650;letter-spacing:-.035em;line-height:1;white-space:nowrap}
+    .logo-wrap{width:clamp(120px,14vw,210px);height:clamp(40px,5.5vh,64px);flex:0 0 auto;display:grid;place-items:center end}.logo-wrap img{display:block;max-width:100%;max-height:100%;object-fit:contain;object-position:right center}.logo-fallback{display:none;color:#e8ebed;font-size:clamp(16px,1.7vw,24px);font-weight:680;letter-spacing:.05em}
+    .content{min-height:0;display:grid;grid-template-columns:minmax(540px,2.15fr) minmax(290px,1fr);gap:clamp(12px,1.4vw,20px)}
+    .main-card,.nodes-card{min-height:0;border-radius:27px;overflow:hidden}
+    .main-card{padding:clamp(20px,2.4vw,38px);display:grid;grid-template-rows:auto minmax(155px,.9fr) auto minmax(150px,.65fr)}
+    .level-row{min-height:0;display:flex;align-items:center;justify-content:center;gap:clamp(9px,1vw,16px);font-variant-numeric:tabular-nums}
+    .level{color:var(--state);font-size:clamp(92px,12vw,190px);font-weight:680;letter-spacing:-.09em;line-height:.82;text-shadow:0 0 42px color-mix(in srgb,var(--state) 22%,transparent);transition:color .28s ease,text-shadow .28s ease}.unit{margin-top:clamp(38px,6vh,72px);color:#7d848c;font-size:clamp(20px,2.3vw,36px);font-weight:580;letter-spacing:-.03em}
+    .status-card{padding:clamp(13px,1.4vw,19px);border:1px solid color-mix(in srgb,var(--state) 32%,transparent);border-radius:18px;background:color-mix(in srgb,var(--state) 7%,rgba(255,255,255,.025));transition:.28s ease}.status-line{display:flex;align-items:center;gap:11px}.state-dot{width:9px;height:9px;flex:0 0 auto;border-radius:50%;background:var(--state);box-shadow:0 0 17px color-mix(in srgb,var(--state) 65%,transparent)}
+    .status-card.held{border-color:rgba(251,90,90,.34);background:rgba(251,90,90,.055)}.status-card.held .state-dot{background:var(--high);box-shadow:0 0 17px rgba(251,90,90,.62)}
+    .status-name{color:var(--state);font-size:clamp(16px,1.45vw,23px);font-weight:680;letter-spacing:-.02em}.status-card.held .status-name{color:var(--high)}.action{margin:7px 0 0 20px;color:#c8ccd0;font-size:clamp(12px,1vw,15px);line-height:1.35}
+    .history{min-height:0;margin-top:clamp(14px,1.7vh,22px);padding-top:14px;border-top:1px solid rgba(255,255,255,.065);display:grid;grid-template-rows:auto minmax(0,1fr)}.history-heading{display:flex;align-items:flex-end;justify-content:space-between;gap:18px}.history h2{margin:5px 0 0;color:#f2f4f5;font-size:clamp(16px,1.55vw,24px);font-weight:620;letter-spacing:-.025em}.window-label{padding-bottom:2px;color:#70777e;font-size:clamp(10px,.85vw,12px);white-space:nowrap}.chart-wrap{position:relative;min-height:0;margin-top:9px}canvas{position:absolute;inset:0;width:100%;height:100%}
+    .nodes-card{padding:clamp(20px,2vw,32px);display:flex;flex-direction:column}.nodes-head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px}.nodes-card h2{margin:7px 0 0;font-size:clamp(21px,2vw,30px);font-weight:620;letter-spacing:-.035em}.node-count{padding-bottom:3px;color:#737a82;font-size:clamp(10px,.8vw,12px);text-align:right;white-space:nowrap}
+    .node-list{margin-top:clamp(18px,2vh,26px)}.node-row{padding:clamp(17px,1.8vh,24px) 0;border-top:1px solid rgba(255,255,255,.075)}.node-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}.node-name{font-size:clamp(15px,1.25vw,19px);font-weight:650}.node-reading{font-size:clamp(20px,1.8vw,28px);font-weight:650;font-variant-numeric:tabular-nums;white-space:nowrap}.node-unit{color:#777e85;font-size:clamp(10px,.75vw,12px);font-weight:600}
+    .node-status{margin-top:9px;display:flex;align-items:center;gap:8px;font-size:clamp(11px,.85vw,13px);font-weight:650}.node-dot{width:8px;height:8px;flex:0 0 auto;border-radius:50%}.node-row.connected .node-status{color:var(--low)}.node-row.connected .node-dot{background:var(--low);box-shadow:0 0 13px rgba(74,222,128,.7)}.node-row.disconnected .node-status{color:var(--high)}.node-row.disconnected .node-dot{background:var(--high);box-shadow:0 0 13px rgba(251,90,90,.62)}.node-time{margin:7px 0 0 16px;color:#777e85;font-size:clamp(10px,.78vw,12px);font-variant-numeric:tabular-nums;line-height:1.35}.future-space{flex:1;min-height:55px;border-top:1px solid rgba(255,255,255,.04);display:grid;place-items:end center}.future-label{padding-top:16px;color:rgba(145,152,159,.42);font-size:clamp(10px,.75vw,12px);text-align:center}.master-state{margin-top:auto;padding-top:14px;color:#70777e;font-size:11px;text-align:center}.master-state.offline{color:var(--high)}
+    @supports not (backdrop-filter:blur(1px)){.glass{background:rgba(18,20,22,.94)}}
+    @media (orientation:landscape) and (max-height:680px){.shell{padding:11px;gap:11px}.topbar{min-height:62px;border-radius:18px}.main-card,.nodes-card{border-radius:21px}.main-card{padding:18px 24px;grid-template-rows:auto minmax(125px,.8fr) auto minmax(120px,.55fr)}.nodes-card{padding:18px 22px}.level{font-size:clamp(82px,10.5vw,154px)}.unit{margin-top:35px}.status-card{padding:11px 15px}.node-row{padding:14px 0}.node-list{margin-top:13px}.history{margin-top:10px}}
+    @media(max-width:900px){html,body{overflow:auto}.shell{height:auto;min-height:100dvh}.content{grid-template-columns:1fr}.main-card{min-height:650px}.nodes-card{min-height:430px}.future-space{min-height:90px}}
+    @media(max-width:540px){.shell{padding:10px}.topbar{padding:12px 15px;border-radius:18px}.eyebrow{display:none}h1{font-size:20px}.logo-wrap{width:92px}.main-card,.nodes-card{padding:18px;border-radius:20px}.main-card{min-height:600px}.level{font-size:86px}.unit{font-size:20px;margin-top:30px}.history-heading{align-items:flex-start;flex-direction:column;gap:2px}}
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar glass">
+      <div><div class="eyebrow">Live acoustic monitoring</div><h1>1 SPD Chiller Plant Room</h1></div>
+      <div class="logo-wrap"><img src="/logo.png" alt="Company logo" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"><div class="logo-fallback">SP GROUP</div></div>
+    </header>
+
+    <section class="content">
+      <article class="main-card glass">
+        <div class="panel-label">Overall sound level</div>
+        <div class="level-row"><div id="currentLevel" class="level">--.-</div><div class="unit">dB(A)</div></div>
+        <div id="statusCard" class="status-card">
+          <div class="status-line"><span class="state-dot"></span><span id="statusName" class="status-name">Waiting for a sensor</span></div>
+          <p id="actionText" class="action">The first live measurement will appear automatically.</p>
+        </div>
+        <div class="history">
+          <div class="history-heading"><div><div class="panel-label">Averaged sound level trend</div><h2>dB(A) history</h2></div><div class="window-label">Latest 60 one-second readings</div></div>
+          <div class="chart-wrap"><canvas id="historyCanvas" aria-label="Averaged sound level history chart"></canvas></div>
+        </div>
+      </article>
+
+      <aside class="nodes-card glass">
+        <div class="nodes-head"><div><div class="panel-label">Sensor network</div><h2>Node readings</h2></div><div id="nodeCount" class="node-count">0 of 2 connected</div></div>
+        <div id="nodeList" class="node-list" aria-live="polite"></div>
+        <div class="future-space"><div class="future-label">Reserved for additional sensor nodes</div></div>
+        <div id="masterState" class="master-state">Connecting to master…</div>
+      </aside>
+    </section>
+  </main>
+
+  <script>
+    "use strict";
+    const POLL_MS=350,FETCH_TIMEOUT_MS=1800,OFFLINE_MS=4000,LIMIT=60,C={low:"#4ade80",moderate:"#fbbf24",high:"#fb5a5a"};
+    const history=[],nodeOnlineState=new Map(),lastConnectedMemory=new Map();let lastID=null,lastContact=0,busy=false,stateKey="moderate",cachedNodes=[],configuredCount=2,activeCount=0,masterOnline=false;
+    const levelEl=document.getElementById("currentLevel"),statusCard=document.getElementById("statusCard"),statusEl=document.getElementById("statusName"),actionEl=document.getElementById("actionText"),nodeList=document.getElementById("nodeList"),nodeCount=document.getElementById("nodeCount"),masterState=document.getElementById("masterState"),canvas=document.getElementById("historyCanvas");
+
+    function classify(v){if(v<70)return{key:"low",label:"Low noise",action:"Continue normal monitoring."};if(v<80)return{key:"moderate",label:"Moderate noise",action:"Ear plugs recommended."};return{key:"high",label:"High noise",action:"Ear plugs recommended. Avoid prolonged exposure."}}
+    function setTheme(v){const s=classify(v);stateKey=s.key;document.documentElement.style.setProperty("--state",C[s.key]);return s}
+    function setAggregate(data){
+      if(!data.has_value||!Number.isFinite(Number(data.overall_dba))){levelEl.textContent="--.-";statusCard.classList.remove("held");statusEl.textContent="Waiting for a sensor";actionEl.textContent="The first live measurement will appear automatically.";return}
+      const value=Number(data.overall_dba),classification=setTheme(value);levelEl.textContent=value.toFixed(1);
+      if(data.held){statusCard.classList.add("held");statusEl.textContent="Held value";actionEl.textContent=Number(data.active_node_count)>0?"Waiting for new sensor readings. Showing the last completed average.":"All sensors are disconnected. Showing the last live average.";return}
+      const contributors=Number(data.aggregate_node_count==null?data.active_node_count:data.aggregate_node_count);statusCard.classList.remove("held");statusEl.textContent=classification.label;actionEl.textContent=`Averaging ${contributors} of ${Number(data.configured_node_count)} sensors over 1 second. ${classification.action}`;
+    }
+    function storageKey(id){return"spdLastConnected:"+id}
+    function savedLastConnected(id){try{const value=Number(localStorage.getItem(storageKey(id)));return Number.isFinite(value)&&value>0?value:null}catch(e){return null}}
+    function saveLastConnected(id,value){try{localStorage.setItem(storageKey(id),String(value))}catch(e){console.warn("Could not persist node time",e)}}
+    function formatAge(ms){if(ms<900)return"just now";if(ms<10000)return(ms/1000).toFixed(1)+" s ago";if(ms<60000)return Math.round(ms/1000)+" s ago";return Math.round(ms/60000)+" min ago"}
+    function renderNodes(nodes,forceOffline=false){
+      cachedNodes=nodes;nodeList.replaceChildren();let online=0;
+      nodes.forEach(node=>{
+        const isOnline=Boolean(node.online)&&!forceOffline;if(isOnline)online++;
+        const row=document.createElement("section");row.className="node-row "+(isOnline?"connected":"disconnected");
+        const head=document.createElement("div");head.className="node-head";
+        const name=document.createElement("div");name.className="node-name";name.textContent=node.name||node.id;
+        const reading=document.createElement("div");reading.className="node-reading";
+        const value=Number(node.dba);reading.textContent=Number.isFinite(value)?value.toFixed(1)+" ":"--.- ";
+        const unit=document.createElement("span");unit.className="node-unit";unit.textContent="dB(A)";reading.append(unit);head.append(name,reading);
+        const status=document.createElement("div");status.className="node-status";const dot=document.createElement("span");dot.className="node-dot";const label=document.createElement("span");label.textContent=isOnline?"Connected":"Disconnected";status.append(dot,label);
+        const timing=document.createElement("div");timing.className="node-time";const age=Number(node.age_ms);
+        const wasOnline=nodeOnlineState.get(node.id);
+        if(isOnline){const seenAt=Date.now()-(Number.isFinite(age)?age:0);lastConnectedMemory.set(node.id,seenAt);if(wasOnline!==true)saveLastConnected(node.id,seenAt);timing.textContent="Last reading: "+formatAge(Number.isFinite(age)?age:0)}
+        else{let last=lastConnectedMemory.get(node.id)||savedLastConnected(node.id);if(!last&&Number.isFinite(age)&&age>=0){last=Date.now()-age;lastConnectedMemory.set(node.id,last);saveLastConnected(node.id,last)}if(wasOnline===true){last=lastConnectedMemory.get(node.id)||Date.now();saveLastConnected(node.id,last)}timing.textContent="Last connected: "+(last?new Date(last).toLocaleString():"Never")}
+        nodeOnlineState.set(node.id,isOnline);
+        row.append(head,status,timing);nodeList.append(row);
+      });
+      activeCount=forceOffline?0:online;nodeCount.textContent=`${activeCount} of ${configuredCount} connected`;
+    }
+    function prep(){const r=canvas.getBoundingClientRect(),d=Math.max(1,devicePixelRatio||1),w=Math.max(1,Math.round(r.width*d)),h=Math.max(1,Math.round(r.height*d));if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h}const x=canvas.getContext("2d");x.setTransform(d,0,0,d,0,0);return{x,w:r.width,h:r.height}}
+    function draw(){const{x,w,h}=prep();x.clearRect(0,0,w,h);const p={l:43,r:12,t:10,b:23},pw=Math.max(1,w-p.l-p.r),ph=Math.max(1,h-p.t-p.b);let lo=50,hi=100;if(history.length){lo=Math.floor((Math.min(...history)-5)/10)*10;hi=Math.ceil((Math.max(...history)+5)/10)*10;if(hi-lo<20)hi=lo+20}const yFor=v=>p.t+ph-((v-lo)/(hi-lo))*ph;x.font="11px -apple-system,sans-serif";x.textBaseline="middle";x.textAlign="right";for(let i=0;i<=3;i++){const f=i/3,y=p.t+f*ph,v=hi-f*(hi-lo);x.strokeStyle="rgba(255,255,255,.07)";x.lineWidth=1;x.beginPath();x.moveTo(p.l,y);x.lineTo(p.l+pw,y);x.stroke();x.fillStyle="#6f767d";x.fillText(v.toFixed(0),p.l-8,y)}if(history.length>1){const pts=history.map((v,i)=>({x:p.l+i/Math.max(1,LIMIT-1)*pw,y:yFor(v)})),g=x.createLinearGradient(0,p.t,0,p.t+ph);g.addColorStop(0,C[stateKey]+"38");g.addColorStop(1,C[stateKey]+"00");x.beginPath();x.moveTo(pts[0].x,p.t+ph);pts.forEach(q=>x.lineTo(q.x,q.y));x.lineTo(pts.at(-1).x,p.t+ph);x.closePath();x.fillStyle=g;x.fill();x.beginPath();pts.forEach((q,i)=>i?x.lineTo(q.x,q.y):x.moveTo(q.x,q.y));x.strokeStyle=C[stateKey];x.lineWidth=2.5;x.lineJoin="round";x.lineCap="round";x.shadowColor=C[stateKey]+"70";x.shadowBlur=10;x.stroke();x.shadowBlur=0}x.fillStyle="#666d74";x.font="10px -apple-system,sans-serif";x.textBaseline="top";x.textAlign="left";x.fillText("Earlier",p.l,p.t+ph+8);x.textAlign="right";x.fillText("Now",p.l+pw,p.t+ph+8)}
+    function setMasterOnline(ok){masterOnline=ok;masterState.classList.toggle("offline",!ok);masterState.textContent=ok?"Master connected":"Master connection lost";if(!ok){if(cachedNodes.length)renderNodes(cachedNodes,true);if(levelEl.textContent!=="--.-"){statusCard.classList.add("held");statusEl.textContent="Held value";actionEl.textContent="Master connection lost. Showing the last received average."}}}
+    async function poll(){if(busy)return;busy=true;const controller=new AbortController(),timeoutID=setTimeout(()=>controller.abort(),FETCH_TIMEOUT_MS);try{const response=await fetch("/api/v1/status",{cache:"no-store",signal:controller.signal});if(!response.ok)throw Error(`HTTP ${response.status}`);const data=await response.json();lastContact=Date.now();setMasterOnline(true);configuredCount=Number(data.configured_node_count)||2;setAggregate(data);renderNodes(Array.isArray(data.nodes)?data.nodes:[]);const value=Number(data.overall_dba),id=Number(data.result_id);if(data.has_value&&!data.held&&Number.isFinite(value)&&Number.isFinite(id)&&id!==lastID){lastID=id;history.push(value);while(history.length>LIMIT)history.shift();draw()}}catch(error){if(error.name!=="AbortError")console.error(error)}finally{clearTimeout(timeoutID);busy=false}}
+    function checkConnection(){if(lastContact===0||Date.now()-lastContact>OFFLINE_MS){if(masterOnline)setMasterOnline(false)}}
+    addEventListener("resize",draw);draw();poll();setInterval(poll,POLL_MS);setInterval(checkConnection,500);
+  </script>
+</body>
+</html>
