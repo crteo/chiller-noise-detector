@@ -75,20 +75,24 @@ Replace the access point, LittleFS, web server, and dashboard code with:
 
 - Wi-Fi station connection to the master's access point.
 - Automatic reconnect with bounded exponential backoff.
-- An HTTP POST after every completed integration interval.
+- A fixed one-second reporting task that snapshots all completed FFT-frame
+  energy without stopping continuous I2S capture, followed by one HTTP POST.
 - A monotonically increasing `sequence` value and device `uptime_ms`.
 - A small queue or single latest-value slot so audio capture never waits for
   an HTTP request.
 
-The current integration period is:
+The initial implementation used this integration period:
 
 ```text
 4096 samples/frame × 3 frames ÷ 48000 samples/second = 0.256 seconds
 ```
 
-Keep that period initially so the refactor can be compared directly with the
-existing monitor. Network transmission should run in a separate FreeRTOS task
-from I2S capture and DSP.
+The optimized implementation instead reports once per second. Because a
+4096-sample FFT frame is indivisible, `integration_ms` records the exact number
+of completed frames captured by each one-second snapshot and can be slightly
+above or below 1000 ms. Frames are carried continuously across snapshot
+boundaries rather than discarded. Network transmission remains in a separate
+FreeRTOS task from I2S capture and DSP.
 
 Recommended POST body:
 
@@ -101,7 +105,7 @@ Recommended POST body:
   "measured_at_ms": 456700,
   "estimated_dba": 73.42,
   "dbfs_a": -49.59,
-  "integration_ms": 256,
+  "integration_ms": 1024,
   "sample_rate": 48000
 }
 ```

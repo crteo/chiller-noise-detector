@@ -83,34 +83,65 @@
   <script>
     "use strict";
     const POLL_MS=350,FETCH_TIMEOUT_MS=1800,OFFLINE_MS=4000,LIMIT=60,C={low:"#4ade80",moderate:"#fbbf24",high:"#fb5a5a"};
-    // ================================================================
-    // PRELIMINARY NOISE-MAP PARAMETERS
-    // Edit all room, equipment, sensor, and assumed model values here.
-    // Coordinates use metres from the bottom-left corner of the room.
-    // ================================================================
-    const NOISE_MAP_CONFIG={
-      room:{widthM:52.3,heightM:26.4},
-      chillers:[
-        {name:"Chiller 1",centerX:12.95,centerY:14.00,sizeX:3.9,sizeY:10.21},
-        {name:"Chiller 2",centerX:18.35,centerY:14.00,sizeX:3.9,sizeY:10.21},
-        {name:"Chiller 3",centerX:23.75,centerY:14.00,sizeX:3.9,sizeY:10.21},
-        {name:"Chiller 4",centerX:29.15,centerY:14.00,sizeX:3.9,sizeY:10.21}
-      ],
-      sensors:[
-        {id:"sensor-1",name:"Sensor 1",x:11.1,y:10.0},
-        {id:"sensor-2",name:"Sensor 2",x:45.0,y:10.0}
-      ],
-      assumptions:{
-        measurementHeightM:1.5,
-        sensorInterpolationPower:2.0,
-        sensorAnchorRadiusM:0.15,
-        displayMinDBA:55,
-        displayMaxDBA:95,
-        gridPixelSize:5
-      }
-    };
+    let NOISE_MAP_CONFIG=null;
     const history=[],nodeOnlineState=new Map(),lastConnectedMemory=new Map();let lastID=null,lastContact=0,busy=false,stateKey="moderate",cachedNodes=[],configuredCount=2,activeCount=0,masterOnline=false,mapNodes=[],mapAnchors=[],mapAvailable=false,mapSignature="",currentAnalysisView="map";
     const levelEl=document.getElementById("currentLevel"),statusCard=document.getElementById("statusCard"),statusEl=document.getElementById("statusName"),actionEl=document.getElementById("actionText"),nodeList=document.getElementById("nodeList"),nodeCount=document.getElementById("nodeCount"),masterState=document.getElementById("masterState"),canvas=document.getElementById("historyCanvas"),mapCanvas=document.getElementById("noiseMapCanvas"),historyView=document.getElementById("historyView"),mapView=document.getElementById("mapView"),historyButton=document.getElementById("historyButton"),mapButton=document.getElementById("mapButton"),analysisLabel=document.getElementById("analysisLabel"),analysisTitle=document.getElementById("analysisTitle"),viewContext=document.getElementById("viewContext"),mapCaption=document.getElementById("mapCaption");
+
+    function validateNoiseMapConfig(config){
+      const errors=[],finite=(value)=>typeof value==="number"&&Number.isFinite(value),positive=(value)=>finite(value)&&value>0;
+      if(!config||typeof config!=="object"||Array.isArray(config))throw Error("configuration must be a JSON object");
+      if(config.schemaVersion!==1)errors.push("schemaVersion must be 1");
+      if(config.units!=="metres")errors.push('units must be "metres"');
+      if(config.origin!=="bottom-left")errors.push('origin must be "bottom-left"');
+      if(!config.room||!positive(config.room.widthM)||!positive(config.room.heightM))errors.push("room widthM and heightM must be positive numbers");
+      const roomWidth=config.room&&config.room.widthM,roomHeight=config.room&&config.room.heightM;
+      if(!Array.isArray(config.equipment))errors.push("equipment must be an array");
+      else{
+        const ids=new Set();
+        config.equipment.forEach((item,index)=>{
+          const label=`equipment[${index}]`;
+          if(!item||typeof item!=="object"){errors.push(`${label} must be an object`);return}
+          if(typeof item.id!=="string"||!item.id.trim())errors.push(`${label}.id must be a non-empty string`);else if(ids.has(item.id))errors.push(`${label}.id duplicates ${item.id}`);else ids.add(item.id);
+          if(typeof item.name!=="string"||!item.name.trim())errors.push(`${label}.name must be a non-empty string`);
+          if(item.type!=="rectangle")errors.push(`${label}.type must be rectangle`);
+          if(!finite(item.x)||!finite(item.y)||!positive(item.widthM)||!positive(item.heightM))errors.push(`${label} requires numeric x/y and positive widthM/heightM`);
+          else if(positive(roomWidth)&&positive(roomHeight)&&(item.x<0||item.y<0||item.x+item.widthM>roomWidth||item.y+item.heightM>roomHeight))errors.push(`${label} lies outside the room`);
+        });
+      }
+      if(!Array.isArray(config.sensors)||config.sensors.length<1)errors.push("sensors must contain at least one sensor");
+      else{
+        const ids=new Set();
+        config.sensors.forEach((sensor,index)=>{
+          const label=`sensors[${index}]`;
+          if(!sensor||typeof sensor!=="object"){errors.push(`${label} must be an object`);return}
+          if(typeof sensor.id!=="string"||!sensor.id.trim())errors.push(`${label}.id must be a non-empty string`);else if(ids.has(sensor.id))errors.push(`${label}.id duplicates ${sensor.id}`);else ids.add(sensor.id);
+          if(typeof sensor.name!=="string"||!sensor.name.trim())errors.push(`${label}.name must be a non-empty string`);
+          if(!finite(sensor.x)||!finite(sensor.y))errors.push(`${label}.x and y must be numbers`);
+          else if(positive(roomWidth)&&positive(roomHeight)&&(sensor.x<0||sensor.y<0||sensor.x>roomWidth||sensor.y>roomHeight))errors.push(`${label} lies outside the room`);
+        });
+      }
+      const a=config.assumptions;
+      if(!a||typeof a!=="object")errors.push("assumptions must be an object");
+      else{
+        if(!finite(a.measurementHeightM)||a.measurementHeightM<0)errors.push("measurementHeightM must be a non-negative number");
+        if(!positive(a.sensorInterpolationPower))errors.push("sensorInterpolationPower must be positive");
+        if(!positive(a.sensorAnchorRadiusM))errors.push("sensorAnchorRadiusM must be positive");
+        if(!finite(a.displayMinDBA)||!finite(a.displayMaxDBA)||a.displayMinDBA>=a.displayMaxDBA)errors.push("displayMinDBA must be lower than displayMaxDBA");
+        if(!positive(a.gridPixelSize))errors.push("gridPixelSize must be positive");
+      }
+      if(errors.length)throw Error(errors.join("; "));
+      return config;
+    }
+    async function loadNoiseMapConfig(){
+      const response=await fetch("/map-config.json",{cache:"no-store"});
+      if(!response.ok)throw Error(`HTTP ${response.status}`);
+      NOISE_MAP_CONFIG=validateNoiseMapConfig(await response.json());
+      viewContext.textContent=`${NOISE_MAP_CONFIG.room.widthM} × ${NOISE_MAP_CONFIG.room.heightM} m · height ${NOISE_MAP_CONFIG.assumptions.measurementHeightM} m`;
+    }
+    function showMapConfigError(error){
+      console.error("Invalid noise-map configuration:",error);
+      mapAvailable=false;mapAnchors=[];mapCaption.classList.add("insufficient");mapCaption.textContent="Noise map configuration unavailable";viewContext.textContent="Check map-config.json";
+    }
 
     function classify(v){if(v<70)return{key:"low",label:"Low noise",action:"Continue normal monitoring."};if(v<80)return{key:"moderate",label:"Moderate noise",action:"Ear plugs recommended."};return{key:"high",label:"High noise",action:"Ear plugs recommended. Avoid prolonged exposure."}}
     function setTheme(v){const s=classify(v);stateKey=s.key;document.documentElement.style.setProperty("--state",C[s.key]);return s}
@@ -146,6 +177,7 @@
     }
     function syncNoiseMapData(data){
       mapNodes=Array.isArray(data.nodes)?data.nodes:[];
+      if(!NOISE_MAP_CONFIG)return false;
       const nextSignature=String(Boolean(data.held))+"|"+mapNodes.map(node=>[node.id,node.online,node.contributed,node.window_dba].join(":")).join("|");
       const changed=nextSignature!==mapSignature;mapSignature=nextSignature;
       const anchors=[];
@@ -164,30 +196,31 @@
       for(const sensor of anchors){const distance=Math.hypot(x-sensor.x,y-sensor.y);if(distance<=a.sensorAnchorRadiusM)return sensor.dba;const weight=1/Math.pow(Math.max(distance,a.sensorAnchorRadiusM),a.sensorInterpolationPower);weightedEnergy+=weight*Math.pow(10,sensor.dba/10);weightSum+=weight}
       return weightSum?10*Math.log10(weightedEnergy/weightSum):NaN;
     }
-    const HEAT_STOPS=[{v:55,c:[21,54,45]},{v:69.9,c:[74,222,128]},{v:75,c:[251,191,36]},{v:80,c:[251,90,90]},{v:95,c:[116,25,40]}];
+    function heatStops(){const a=NOISE_MAP_CONFIG.assumptions,fixed=[{v:69.9,c:[74,222,128]},{v:75,c:[251,191,36]},{v:80,c:[251,90,90]}];return[{v:a.displayMinDBA,c:[21,54,45]},...fixed.filter(stop=>stop.v>a.displayMinDBA&&stop.v<a.displayMaxDBA),{v:a.displayMaxDBA,c:[116,25,40]}]}
     function heatColor(value){
-      if(value<=HEAT_STOPS[0].v)return`rgb(${HEAT_STOPS[0].c.join(",")})`;for(let i=1;i<HEAT_STOPS.length;i++){const left=HEAT_STOPS[i-1],right=HEAT_STOPS[i];if(value<=right.v){const t=(value-left.v)/(right.v-left.v),rgb=left.c.map((channel,index)=>Math.round(channel+(right.c[index]-channel)*t));return`rgb(${rgb.join(",")})`}}const last=HEAT_STOPS[HEAT_STOPS.length-1];return`rgb(${last.c.join(",")})`;
+      const stops=heatStops();if(value<=stops[0].v)return`rgb(${stops[0].c.join(",")})`;for(let i=1;i<stops.length;i++){const left=stops[i-1],right=stops[i];if(value<=right.v){const t=(value-left.v)/(right.v-left.v),rgb=left.c.map((channel,index)=>Math.round(channel+(right.c[index]-channel)*t));return`rgb(${rgb.join(",")})`}}const last=stops[stops.length-1];return`rgb(${last.c.join(",")})`;
     }
     function drawNoiseMap(){
-      if(currentAnalysisView!=="map")return;const rect=mapCanvas.getBoundingClientRect();if(rect.width<2||rect.height<2)return;
+      if(currentAnalysisView!=="map"||!NOISE_MAP_CONFIG)return;const rect=mapCanvas.getBoundingClientRect();if(rect.width<2||rect.height<2)return;
       const d=Math.min(2,Math.max(1,devicePixelRatio||1)),pixelWidth=Math.round(rect.width*d),pixelHeight=Math.round(rect.height*d);if(mapCanvas.width!==pixelWidth||mapCanvas.height!==pixelHeight){mapCanvas.width=pixelWidth;mapCanvas.height=pixelHeight}const x=mapCanvas.getContext("2d");x.setTransform(d,0,0,d,0,0);x.clearRect(0,0,rect.width,rect.height);
       const room=NOISE_MAP_CONFIG.room,padding={l:30,r:12,t:12,b:23},availableWidth=rect.width-padding.l-padding.r,availableHeight=rect.height-padding.t-padding.b,roomRatio=room.widthM/room.heightM;let plotWidth=availableWidth,plotHeight=plotWidth/roomRatio;if(plotHeight>availableHeight){plotHeight=availableHeight;plotWidth=plotHeight*roomRatio}const plotX=padding.l+(availableWidth-plotWidth)/2,plotY=padding.t+(availableHeight-plotHeight)/2,toX=value=>plotX+value/room.widthM*plotWidth,toY=value=>plotY+plotHeight-value/room.heightM*plotHeight,anchors=mapAnchors;
       x.fillStyle="rgba(0,0,0,.2)";x.fillRect(plotX,plotY,plotWidth,plotHeight);
       if(anchors.length){const step=Math.max(3,NOISE_MAP_CONFIG.assumptions.gridPixelSize),columns=Math.ceil(plotWidth/step),rows=Math.ceil(plotHeight/step);for(let row=0;row<rows;row++){for(let column=0;column<columns;column++){const px=plotX+column*plotWidth/columns,py=plotY+row*plotHeight/rows,mx=(column+.5)/columns*room.widthM,my=room.heightM-(row+.5)/rows*room.heightM;x.fillStyle=heatColor(mapDBA(mx,my,anchors));x.fillRect(px,py,plotWidth/columns+1,plotHeight/rows+1)}}}
       x.strokeStyle="rgba(255,255,255,.46)";x.lineWidth=1;x.strokeRect(plotX+.5,plotY+.5,plotWidth-1,plotHeight-1);
       x.font="10px -apple-system,sans-serif";x.textBaseline="middle";x.textAlign="center";
-      NOISE_MAP_CONFIG.chillers.forEach(chiller=>{const left=toX(chiller.centerX-chiller.sizeX/2),right=toX(chiller.centerX+chiller.sizeX/2),top=toY(chiller.centerY+chiller.sizeY/2),bottom=toY(chiller.centerY-chiller.sizeY/2);x.fillStyle="rgba(5,6,7,.54)";x.fillRect(left,top,right-left,bottom-top);x.strokeStyle="rgba(255,255,255,.58)";x.strokeRect(left+.5,top+.5,right-left-1,bottom-top-1);x.save();x.translate((left+right)/2,(top+bottom)/2);if(bottom-top>45)x.rotate(-Math.PI/2);x.fillStyle="#f0f2f3";x.fillText(chiller.name,0,0);x.restore()});
+      NOISE_MAP_CONFIG.equipment.forEach(item=>{const left=toX(item.x),right=toX(item.x+item.widthM),top=toY(item.y+item.heightM),bottom=toY(item.y);x.fillStyle="rgba(5,6,7,.54)";x.fillRect(left,top,right-left,bottom-top);x.strokeStyle="rgba(255,255,255,.58)";x.strokeRect(left+.5,top+.5,right-left-1,bottom-top-1);x.save();x.translate((left+right)/2,(top+bottom)/2);if(bottom-top>45)x.rotate(-Math.PI/2);x.fillStyle="#f0f2f3";x.fillText(item.name,0,0);x.restore()});
       NOISE_MAP_CONFIG.sensors.forEach(sensor=>{const node=mapNodes.find(item=>item.id===sensor.id),online=Boolean(node&&node.online),sx=toX(sensor.x),sy=toY(sensor.y);x.beginPath();x.arc(sx,sy,5,0,Math.PI*2);x.fillStyle=online?C.low:C.high;x.fill();x.strokeStyle="#f5f7f8";x.lineWidth=1.5;x.stroke();x.fillStyle="#f5f7f8";x.textAlign="left";x.fillText(sensor.name,sx+8,sy-5);const value=node?Number(node.window_dba):NaN;x.fillStyle="#c8ccd0";x.fillText(Number.isFinite(value)?value.toFixed(1)+" dB(A)":"--.- dB(A)",sx+8,sy+7)});
       x.fillStyle="#777e85";x.textAlign="left";x.textBaseline="top";x.fillText("0 m",plotX,plotY+plotHeight+6);x.textAlign="right";x.fillText(room.widthM.toFixed(1)+" m",plotX+plotWidth,plotY+plotHeight+6);x.save();x.translate(plotX-8,plotY);x.rotate(-Math.PI/2);x.textAlign="right";x.fillText(room.heightM.toFixed(1)+" m",0,0);x.restore();
-      if(mapAvailable){const legendWidth=Math.min(130,plotWidth*.28),legendX=plotX+plotWidth-legendWidth-7,legendY=plotY+7,gradient=x.createLinearGradient(legendX,0,legendX+legendWidth,0);HEAT_STOPS.forEach(stop=>gradient.addColorStop((stop.v-NOISE_MAP_CONFIG.assumptions.displayMinDBA)/(NOISE_MAP_CONFIG.assumptions.displayMaxDBA-NOISE_MAP_CONFIG.assumptions.displayMinDBA),`rgb(${stop.c.join(",")})`));x.fillStyle="rgba(5,6,7,.7)";x.fillRect(legendX-5,legendY-5,legendWidth+10,24);x.fillStyle=gradient;x.fillRect(legendX,legendY,legendWidth,7);x.fillStyle="#e3e6e8";x.font="9px -apple-system,sans-serif";x.textBaseline="top";x.textAlign="left";x.fillText("55",legendX,legendY+9);x.textAlign="center";x.fillText("70",legendX+legendWidth*.375,legendY+9);x.fillText("80",legendX+legendWidth*.625,legendY+9);x.textAlign="right";x.fillText("95 dB(A)",legendX+legendWidth,legendY+9)}
+      if(mapAvailable){const a=NOISE_MAP_CONFIG.assumptions,range=a.displayMaxDBA-a.displayMinDBA,legendWidth=Math.min(130,plotWidth*.28),legendX=plotX+plotWidth-legendWidth-7,legendY=plotY+7,gradient=x.createLinearGradient(legendX,0,legendX+legendWidth,0);heatStops().forEach(stop=>gradient.addColorStop((stop.v-a.displayMinDBA)/range,`rgb(${stop.c.join(",")})`));x.fillStyle="rgba(5,6,7,.7)";x.fillRect(legendX-5,legendY-5,legendWidth+10,24);x.fillStyle=gradient;x.fillRect(legendX,legendY,legendWidth,7);x.fillStyle="#e3e6e8";x.font="9px -apple-system,sans-serif";x.textBaseline="top";x.textAlign="left";x.fillText(String(a.displayMinDBA),legendX,legendY+9);[70,80].filter(value=>value>a.displayMinDBA&&value<a.displayMaxDBA).forEach(value=>{x.textAlign="center";x.fillText(String(value),legendX+legendWidth*(value-a.displayMinDBA)/range,legendY+9)});x.textAlign="right";x.fillText(`${a.displayMaxDBA} dB(A)`,legendX+legendWidth,legendY+9)}
     }
-    function setAnalysisView(view){currentAnalysisView=view;const showMap=view==="map";historyView.classList.toggle("hidden",showMap);mapView.classList.toggle("hidden",!showMap);historyButton.classList.toggle("active",!showMap);mapButton.classList.toggle("active",showMap);analysisLabel.textContent=showMap?"Preliminary spatial estimate":"Averaged sound level trend";analysisTitle.textContent=showMap?"Plant room noise map":"dB(A) history";viewContext.textContent=showMap?`${NOISE_MAP_CONFIG.room.widthM} × ${NOISE_MAP_CONFIG.room.heightM} m · height ${NOISE_MAP_CONFIG.assumptions.measurementHeightM} m`:"Latest 60 one-second readings";requestAnimationFrame(showMap?drawNoiseMap:draw)}
+    function setAnalysisView(view){currentAnalysisView=view;const showMap=view==="map";historyView.classList.toggle("hidden",showMap);mapView.classList.toggle("hidden",!showMap);historyButton.classList.toggle("active",!showMap);mapButton.classList.toggle("active",showMap);analysisLabel.textContent=showMap?"Preliminary spatial estimate":"Averaged sound level trend";analysisTitle.textContent=showMap?"Plant room noise map":"dB(A) history";viewContext.textContent=showMap?(NOISE_MAP_CONFIG?`${NOISE_MAP_CONFIG.room.widthM} × ${NOISE_MAP_CONFIG.room.heightM} m · height ${NOISE_MAP_CONFIG.assumptions.measurementHeightM} m`:"Check map-config.json"):"Latest 60 one-second readings";requestAnimationFrame(showMap?drawNoiseMap:draw)}
     function prep(){const r=canvas.getBoundingClientRect(),d=Math.max(1,devicePixelRatio||1),w=Math.max(1,Math.round(r.width*d)),h=Math.max(1,Math.round(r.height*d));if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h}const x=canvas.getContext("2d");x.setTransform(d,0,0,d,0,0);return{x,w:r.width,h:r.height}}
     function draw(){const{x,w,h}=prep();x.clearRect(0,0,w,h);const p={l:43,r:12,t:10,b:23},pw=Math.max(1,w-p.l-p.r),ph=Math.max(1,h-p.t-p.b);let lo=50,hi=100;if(history.length){lo=Math.floor((Math.min(...history)-5)/10)*10;hi=Math.ceil((Math.max(...history)+5)/10)*10;if(hi-lo<20)hi=lo+20}const yFor=v=>p.t+ph-((v-lo)/(hi-lo))*ph;x.font="11px -apple-system,sans-serif";x.textBaseline="middle";x.textAlign="right";for(let i=0;i<=3;i++){const f=i/3,y=p.t+f*ph,v=hi-f*(hi-lo);x.strokeStyle="rgba(255,255,255,.07)";x.lineWidth=1;x.beginPath();x.moveTo(p.l,y);x.lineTo(p.l+pw,y);x.stroke();x.fillStyle="#6f767d";x.fillText(v.toFixed(0),p.l-8,y)}if(history.length>1){const pts=history.map((v,i)=>({x:p.l+i/Math.max(1,LIMIT-1)*pw,y:yFor(v)})),g=x.createLinearGradient(0,p.t,0,p.t+ph),lastPoint=pts[pts.length-1];g.addColorStop(0,C[stateKey]+"38");g.addColorStop(1,C[stateKey]+"00");x.beginPath();x.moveTo(pts[0].x,p.t+ph);pts.forEach(q=>x.lineTo(q.x,q.y));x.lineTo(lastPoint.x,p.t+ph);x.closePath();x.fillStyle=g;x.fill();x.beginPath();pts.forEach((q,i)=>i?x.lineTo(q.x,q.y):x.moveTo(q.x,q.y));x.strokeStyle=C[stateKey];x.lineWidth=2.5;x.lineJoin="round";x.lineCap="round";x.shadowColor=C[stateKey]+"70";x.shadowBlur=10;x.stroke();x.shadowBlur=0}x.fillStyle="#666d74";x.font="10px -apple-system,sans-serif";x.textBaseline="top";x.textAlign="left";x.fillText("Earlier",p.l,p.t+ph+8);x.textAlign="right";x.fillText("Now",p.l+pw,p.t+ph+8)}
     function setMasterOnline(ok){masterOnline=ok;masterState.classList.toggle("offline",!ok);masterState.textContent=ok?"Master connected":"Master connection lost";if(!ok){if(cachedNodes.length)renderNodes(cachedNodes,true);if(levelEl.textContent!=="--.-"){statusCard.classList.add("held");statusEl.textContent="Held value";actionEl.textContent="Master connection lost. Showing the last received average."}}}
     async function poll(){if(busy)return;busy=true;const controller=new AbortController(),timeoutID=setTimeout(()=>controller.abort(),FETCH_TIMEOUT_MS);try{const response=await fetch("/api/v1/status",{cache:"no-store",signal:controller.signal});if(!response.ok)throw Error(`HTTP ${response.status}`);const data=await response.json();lastContact=Date.now();setMasterOnline(true);configuredCount=Number(data.configured_node_count)||2;setAggregate(data);renderNodes(Array.isArray(data.nodes)?data.nodes:[]);const mapChanged=syncNoiseMapData(data),value=Number(data.overall_dba),id=Number(data.result_id);if(data.has_value&&!data.held&&Number.isFinite(value)&&Number.isFinite(id)&&id!==lastID){lastID=id;history.push(value);while(history.length>LIMIT)history.shift();if(currentAnalysisView==="history")draw()}if(mapChanged&&currentAnalysisView==="map")drawNoiseMap()}catch(error){if(error.name!=="AbortError")console.error(error)}finally{clearTimeout(timeoutID);busy=false}}
     function checkConnection(){if(lastContact===0||Date.now()-lastContact>OFFLINE_MS){if(masterOnline)setMasterOnline(false)}}
-    historyButton.addEventListener("click",()=>setAnalysisView("history"));mapButton.addEventListener("click",()=>setAnalysisView("map"));addEventListener("resize",()=>{draw();drawNoiseMap()});drawNoiseMap();poll();setInterval(poll,POLL_MS);setInterval(checkConnection,500);
+    async function initialize(){try{await loadNoiseMapConfig();drawNoiseMap()}catch(error){showMapConfigError(error)}poll();setInterval(poll,POLL_MS);setInterval(checkConnection,500)}
+    historyButton.addEventListener("click",()=>setAnalysisView("history"));mapButton.addEventListener("click",()=>setAnalysisView("map"));addEventListener("resize",()=>{draw();drawNoiseMap()});initialize();
   </script>
 </body>
 </html>

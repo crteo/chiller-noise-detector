@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "units": "metres",
+  "origin": "bottom-left",
+  "room": {
+    "widthM": 52.3, 
+    "heightM": 26.4
+  },
+  "equipment": [
+    { "id": "chiller-1", "name": "Chiller 1", "type": "rectangle", "x": 11.0, "y": 8.895, "widthM": 3.9, "heightM": 10.21 },
+    { "id": "chiller-2", "name": "Chiller 2", "type": "rectangle", "x": 16.4, "y": 8.895, "widthM": 3.9, "heightM": 10.21 },
+    { "id": "chiller-3", "name": "Chiller 3", "type": "rectangle", "x": 21.8, "y": 8.895, "widthM": 3.9, "heightM": 10.21 },
+    { "id": "chiller-4", "name": "Chiller 4", "type": "rectangle", "x": 27.2, "y": 8.895, "widthM": 3.9, "heightM": 10.21 }
+  ],
+  "sensors": [
+    { "id": "sensor-1", "name": "Sensor 1", "x": 9.3, "y": 18.64 },
+    { "id": "sensor-2", "name": "Sensor 2", "x": 48.2, "y": 6 }
+  ],
+  "assumptions": {
+    "measurementHeightM": 1.5,
+    "sensorInterpolationPower": 2.0,
+    "sensorAnchorRadiusM": 0.15,
+    "displayMinDBA": 40,
+    "displayMaxDBA": 100,
+    "gridPixelSize": 5
+  }
+}

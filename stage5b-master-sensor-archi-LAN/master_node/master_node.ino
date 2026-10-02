@@ -428,6 +428,7 @@ void setupWebServer()
   const char* headerKeys[] = {"X-API-Key"};
   server.collectHeaders(headerKeys, 1);
   server.on("/", HTTP_GET, []() { sendFile("/index.html", "text/html"); });
+  server.on("/map-config.json", HTTP_GET, []() { sendFile("/map-config.json", "application/json"); });
   server.on("/logo.png", HTTP_GET, []() { sendFile("/logo.png", "image/png"); });
   server.on("/api/v1/readings", HTTP_POST, handleReadingPost);
   server.on("/api/v1/status", HTTP_GET, sendStatus);

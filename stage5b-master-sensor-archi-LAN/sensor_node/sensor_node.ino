@@ -17,23 +17,22 @@ static_assert(sizeof(NODE_ID) > 1, "NODE_ID must not be empty");
 constexpr i2s_port_t I2S_PORT = I2S_NUM_0;
 constexpr uint32_t SAMPLE_RATE = 48000;
 constexpr uint16_t FFT_SIZE = 4096;
-constexpr uint8_t FRAMES_PER_LEVEL = 3;
-constexpr uint32_t LEVEL_SAMPLE_COUNT = FFT_SIZE * FRAMES_PER_LEVEL;
-constexpr uint32_t INTEGRATION_MS =
-  (LEVEL_SAMPLE_COUNT * 1000UL) / SAMPLE_RATE;
-constexpr double PCM_FULL_SCALE = 8388608.0;  // 2^23
+constexpr uint32_t REPORT_INTERVAL_MS = 1000;
+constexpr float PCM_FULL_SCALE = 8388608.0f;  // 2^23
 
 constexpr size_t I2S_BUFFER_SIZE = 512;
 int32_t i2sBuffer[I2S_BUFFER_SIZE];
-double vReal[FFT_SIZE];
-double vImag[FFT_SIZE];
-ArduinoFFT<double> FFT(vReal, vImag, FFT_SIZE, SAMPLE_RATE);
+float vReal[FFT_SIZE];
+float vImag[FFT_SIZE];
+float hannWindow[FFT_SIZE];
+float aWeightPowerGain[FFT_SIZE / 2 + 1];
+float windowEnergyCorrection = 1.0f;
+ArduinoFFT<float> FFT(vReal, vImag, FFT_SIZE, SAMPLE_RATE);
 
 uint16_t fftIndex = 0;
-double accumulatedUnweightedMS = 0.0;
-double accumulatedWeightedMS = 0.0;
-double accumulatedDominantFrequency = 0.0;
-uint8_t accumulatedFrames = 0;
+float accumulatedWeightedMS = 0.0f;
+float accumulatedDominantFrequency = 0.0f;
+uint32_t accumulatedFrames = 0;
 uint32_t sequenceNumber = 0;
 uint32_t bootID = 0;
 
@@ -41,43 +40,69 @@ struct MeasurementReport
 {
   uint32_t sequence;
   uint32_t measuredAtMs;
-  double estimatedDBA;
-  double dbfsA;
-  double dominantFrequency;
+  uint32_t integrationMs;
+  float estimatedDBA;
+  float dbfsA;
+  float dominantFrequency;
 };
 
 QueueHandle_t reportQueue = nullptr;
+SemaphoreHandle_t dspMutex = nullptr;
 
 // =====================================================
 // A-WEIGHTING
 // =====================================================
 
-double calculateAWeightingDB(double frequency)
+float calculateAWeightingDB(float frequency)
 {
-  if (frequency <= 0.0)
+  if (frequency <= 0.0f)
   {
-    return -200.0;
+    return -200.0f;
   }
 
-  constexpr double c1 = 20.6;
-  constexpr double c2 = 107.7;
-  constexpr double c3 = 737.9;
-  constexpr double c4 = 12194.0;
+  constexpr float c1 = 20.6f;
+  constexpr float c2 = 107.7f;
+  constexpr float c3 = 737.9f;
+  constexpr float c4 = 12194.0f;
 
-  const double f2 = frequency * frequency;
-  const double numerator = (c4 * c4) * f2 * f2;
-  const double denominator =
+  const float f2 = frequency * frequency;
+  const float numerator = (c4 * c4) * f2 * f2;
+  const float denominator =
     (f2 + c1 * c1) *
-    sqrt((f2 + c2 * c2) * (f2 + c3 * c3)) *
+    sqrtf((f2 + c2 * c2) * (f2 + c3 * c3)) *
     (f2 + c4 * c4);
-  const double response = numerator / denominator;
+  const float response = numerator / denominator;
 
-  return response > 0.0 ? 20.0 * log10(response) + 2.0 : -200.0;
+  return response > 0.0f ? 20.0f * log10f(response) + 2.0f : -200.0f;
 }
 
-double calculateAWeightPowerGain(double frequency)
+float calculateAWeightPowerGain(float frequency)
 {
-  return pow(10.0, calculateAWeightingDB(frequency) / 10.0);
+  return powf(10.0f, calculateAWeightingDB(frequency) / 10.0f);
+}
+
+void setupDSPTables()
+{
+  float windowSquareSum = 0.0f;
+
+  for (uint16_t i = 0; i < FFT_SIZE; i++)
+  {
+    const float window =
+      0.5f * (1.0f - cosf(2.0f * PI * i / (FFT_SIZE - 1)));
+    hannWindow[i] = window;
+    windowSquareSum += window * window;
+  }
+
+  windowEnergyCorrection = windowSquareSum / FFT_SIZE;
+  aWeightPowerGain[0] = 0.0f;
+
+  for (uint16_t bin = 1; bin <= FFT_SIZE / 2; bin++)
+  {
+    const float frequency = (float)bin * SAMPLE_RATE / FFT_SIZE;
+    aWeightPowerGain[bin] = calculateAWeightPowerGain(frequency);
+  }
+
+  Serial.println("[DSP] Window and A-weighting tables initialised.");
 }
 
 // =====================================================
@@ -129,34 +154,54 @@ void setupI2S()
 
 void publishLevelMeasurement()
 {
-  if (accumulatedFrames == 0)
+  if (xSemaphoreTake(dspMutex, pdMS_TO_TICKS(100)) != pdTRUE)
   {
+    Serial.println("[DSP] Could not snapshot measurement window.");
     return;
   }
 
-  const double averageWeightedMS =
-    max(0.0, accumulatedWeightedMS / accumulatedFrames);
-  const double rmsA = sqrt(averageWeightedMS);
-  const double dbfsA = rmsA > 1e-12 ? 20.0 * log10(rmsA) : -120.0;
-  const double estimatedDBA = dbfsA + SENSOR_CALIBRATION_DB;
+  if (accumulatedFrames == 0)
+  {
+    xSemaphoreGive(dspMutex);
+    return;
+  }
+
+  const uint32_t completedFrames = accumulatedFrames;
+  const float completedWeightedMS = accumulatedWeightedMS;
+  const float completedDominantFrequency = accumulatedDominantFrequency;
+
+  accumulatedWeightedMS = 0.0f;
+  accumulatedDominantFrequency = 0.0f;
+  accumulatedFrames = 0;
+  xSemaphoreGive(dspMutex);
+
+  const float averageWeightedMS =
+    max(0.0f, completedWeightedMS / completedFrames);
+  const float rmsA = sqrtf(averageWeightedMS);
+  const float dbfsA = rmsA > 1e-12f ? 20.0f * log10f(rmsA) : -120.0f;
+  const float estimatedDBA = dbfsA + SENSOR_CALIBRATION_DB;
 
   MeasurementReport report = {
     .sequence = ++sequenceNumber,
     .measuredAtMs = millis(),
+    .integrationMs =
+      (uint32_t)(((uint64_t)completedFrames * FFT_SIZE * 1000ULL) /
+                 SAMPLE_RATE),
     .estimatedDBA = estimatedDBA,
     .dbfsA = dbfsA,
-    .dominantFrequency = accumulatedDominantFrequency / accumulatedFrames
+    .dominantFrequency = completedDominantFrequency / completedFrames
   };
 
-  if (isfinite(report.estimatedDBA) && report.estimatedDBA >= 0.0 &&
-      report.estimatedDBA <= 160.0)
+  if (isfinite(report.estimatedDBA) && report.estimatedDBA >= 0.0f &&
+      report.estimatedDBA <= 160.0f)
   {
     xQueueOverwrite(reportQueue, &report);
     Serial.printf(
-      "[LEVEL] seq=%lu level=%.2f dBA dbfsA=%.2f dominant=%.1f Hz\n",
+      "[LEVEL] seq=%lu level=%.2f dBA integration=%lu ms "
+      "dominant=%.1f Hz\n",
       (unsigned long)report.sequence,
       report.estimatedDBA,
-      report.dbfsA,
+      (unsigned long)report.integrationMs,
       report.dominantFrequency
     );
   }
@@ -165,15 +210,11 @@ void publishLevelMeasurement()
     Serial.printf("[LEVEL] Rejected invalid value: %.2f dBA\n", estimatedDBA);
   }
 
-  accumulatedUnweightedMS = 0.0;
-  accumulatedWeightedMS = 0.0;
-  accumulatedDominantFrequency = 0.0;
-  accumulatedFrames = 0;
 }
 
 void processFFTFrame()
 {
-  double mean = 0.0;
+  float mean = 0.0f;
 
   for (uint16_t i = 0; i < FFT_SIZE; i++)
   {
@@ -182,42 +223,32 @@ void processFFTFrame()
 
   mean /= FFT_SIZE;
 
-  double windowSquareSum = 0.0;
-
   for (uint16_t i = 0; i < FFT_SIZE; i++)
   {
-    const double window =
-      0.5 * (1.0 - cos(2.0 * PI * i / (FFT_SIZE - 1)));
-    vReal[i] = (vReal[i] - mean) * window;
-    vImag[i] = 0.0;
-    windowSquareSum += window * window;
+    vReal[i] = (vReal[i] - mean) * hannWindow[i];
+    vImag[i] = 0.0f;
   }
 
-  const double windowEnergyCorrection = windowSquareSum / FFT_SIZE;
   FFT.compute(FFTDirection::Forward);
 
-  double spectralEnergy = 0.0;
-  double weightedEnergy = 0.0;
-  double maximumBinEnergy = 0.0;
+  float weightedEnergy = 0.0f;
+  float maximumBinEnergy = 0.0f;
   uint16_t maximumBin = 0;
 
   for (uint16_t bin = 0; bin <= FFT_SIZE / 2; bin++)
   {
-    const double re = vReal[bin];
-    const double im = vImag[bin];
-    double binEnergy = re * re + im * im;
+    const float re = vReal[bin];
+    const float im = vImag[bin];
+    float binEnergy = re * re + im * im;
 
     if (bin > 0 && bin < FFT_SIZE / 2)
     {
-      binEnergy *= 2.0;
+      binEnergy *= 2.0f;
     }
-
-    spectralEnergy += binEnergy;
 
     if (bin > 0)
     {
-      const double frequency = (double)bin * SAMPLE_RATE / FFT_SIZE;
-      weightedEnergy += binEnergy * calculateAWeightPowerGain(frequency);
+      weightedEnergy += binEnergy * aWeightPowerGain[bin];
 
       if (bin < FFT_SIZE / 2 && binEnergy > maximumBinEnergy)
       {
@@ -227,17 +258,20 @@ void processFFTFrame()
     }
   }
 
-  const double normalization =
-    (double)FFT_SIZE * (double)FFT_SIZE * windowEnergyCorrection;
-  accumulatedUnweightedMS += max(0.0, spectralEnergy / normalization);
-  accumulatedWeightedMS += max(0.0, weightedEnergy / normalization);
-  accumulatedDominantFrequency +=
-    (double)maximumBin * SAMPLE_RATE / FFT_SIZE;
-  accumulatedFrames++;
+  const float normalization =
+    (float)FFT_SIZE * (float)FFT_SIZE * windowEnergyCorrection;
 
-  if (accumulatedFrames >= FRAMES_PER_LEVEL)
+  if (xSemaphoreTake(dspMutex, pdMS_TO_TICKS(100)) == pdTRUE)
   {
-    publishLevelMeasurement();
+    accumulatedWeightedMS += max(0.0f, weightedEnergy / normalization);
+    accumulatedDominantFrequency +=
+      (float)maximumBin * SAMPLE_RATE / FFT_SIZE;
+    accumulatedFrames++;
+    xSemaphoreGive(dspMutex);
+  }
+  else
+  {
+    Serial.println("[DSP] Dropped processed FFT frame: accumulator busy.");
   }
 }
 
@@ -265,8 +299,8 @@ void audioTask(void* parameter)
     for (size_t i = 0; i < samplesReceived; i++)
     {
       const int32_t pcm = i2sBuffer[i] >> 8;
-      vReal[fftIndex] = (double)pcm / PCM_FULL_SCALE;
-      vImag[fftIndex] = 0.0;
+      vReal[fftIndex] = (float)pcm / PCM_FULL_SCALE;
+      vImag[fftIndex] = 0.0f;
       fftIndex++;
 
       if (fftIndex >= FFT_SIZE)
@@ -275,6 +309,17 @@ void audioTask(void* parameter)
         fftIndex = 0;
       }
     }
+  }
+}
+
+void reportingTask(void* parameter)
+{
+  TickType_t nextWake = xTaskGetTickCount();
+
+  while (true)
+  {
+    vTaskDelayUntil(&nextWake, pdMS_TO_TICKS(REPORT_INTERVAL_MS));
+    publishLevelMeasurement();
   }
 }
 
@@ -358,7 +403,7 @@ void networkTask(void* parameter)
     payload += ",\"dbfs_a\":" + String(report.dbfsA, 3);
     payload += ",\"dominant_frequency\":" +
       String(report.dominantFrequency, 2);
-    payload += ",\"integration_ms\":" + String(INTEGRATION_MS);
+    payload += ",\"integration_ms\":" + String(report.integrationMs);
     payload += ",\"sample_rate\":" + String(SAMPLE_RATE);
     payload += "}";
 
@@ -388,15 +433,16 @@ void setup()
   Serial.println("SPD DISTRIBUTED NOISE SENSOR");
   Serial.printf("Node             : %s (%s)\n", NODE_NAME, NODE_ID);
   Serial.printf("Boot ID          : %lu\n", (unsigned long)bootID);
-  Serial.printf("Integration time : %lu ms\n", (unsigned long)INTEGRATION_MS);
+  Serial.printf("Report interval  : %lu ms\n", (unsigned long)REPORT_INTERVAL_MS);
   Serial.printf("Calibration      : %.2f dB\n", SENSOR_CALIBRATION_DB);
   Serial.println("==========================================");
 
   reportQueue = xQueueCreate(1, sizeof(MeasurementReport));
+  dspMutex = xSemaphoreCreateMutex();
 
-  if (reportQueue == nullptr)
+  if (reportQueue == nullptr || dspMutex == nullptr)
   {
-    Serial.println("[FATAL] Could not create report queue.");
+    Serial.println("[FATAL] Could not create queue or DSP mutex.");
     while (true)
     {
       delay(1000);
@@ -404,8 +450,9 @@ void setup()
   }
 
   WiFi.mode(WIFI_STA);
-  WiFi.setSleep(false);
+  WiFi.setSleep(true);
   beginWiFiConnection();
+  setupDSPTables();
   setupI2S();
 
   xTaskCreatePinnedToCore(
@@ -413,6 +460,9 @@ void setup()
   );
   xTaskCreatePinnedToCore(
     networkTask, "NetworkTask", 8192, nullptr, 1, nullptr, 0
+  );
+  xTaskCreatePinnedToCore(
+    reportingTask, "ReportingTask", 4096, nullptr, 1, nullptr, 0
   );
 }
 

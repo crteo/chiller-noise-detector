@@ -27,6 +27,7 @@ dashboard for the tablet.
 │   ├── platformio.ini
 │   └── data/
 │       ├── index.html
+│       ├── map-config.json
 │       └── logo.png
 └── SPD_Noise_Monitor_Offline_Glass/  # original prototype
 ```
@@ -203,6 +204,15 @@ energy and time-averaged. The master then averages those per-node energies and
 publishes exactly one new `result_id`. Different sensor startup phases therefore
 do not increase the dashboard update frequency.
 
+Each sensor continues capturing at 48 kHz and snapshots its completed FFT-frame
+energy on a fixed one-second schedule. It sends one report per second rather
+than one report for every three FFT frames. The reported `integration_ms` is
+the duration of the completed frames in that snapshot, so no completed frame
+is discarded between reports. Hann-window values and A-weighting gains are
+calculated once at startup, DSP uses single-precision arithmetic, and station
+Wi-Fi modem sleep is enabled between radio activity. These changes reduce CPU
+and radio work without duty-cycling the microphone.
+
 ## Runtime endpoints
 
 | Method and address | Purpose |
@@ -227,20 +237,35 @@ same one-second window. With zero or one contributor, the heat field is turned
 off and the dashboard shows **Insufficient sensors available** below the
 neutral floor plan. A single sensor is not used to invent a radial decay model.
 
-All editable map inputs and assumptions are intentionally kept together in
-`master_node/data/index.html` under `NOISE_MAP_CONFIG`. No `.h` file needs to
-be changed. That block contains:
+All editable map inputs and assumptions are kept in
+`master_node/data/map-config.json`. No HTML or `.h` file needs to be changed.
+The dashboard loads and validates this file before drawing the map. Invalid
+JSON, duplicate IDs, non-positive dimensions, and sensors or equipment outside
+the room produce a **Noise map configuration unavailable** message instead of
+drawing a misleading map.
+
+Coordinates use metres from the room's bottom-left corner. Equipment `x` and
+`y` identify the bottom-left corner of its rectangle; `widthM` and `heightM`
+define its footprint. The file contains:
 
 - Room dimensions: 52.3 m × 26.4 m
-- Four chiller centre coordinates and footprints used for visual context only
+- Four chiller bottom-left coordinates and footprints used for visual context only
 - Sensor 1 at (11.1, 10.0) m
 - Sensor 2 at (45.0, 10.0) m
 - Assumed measurement height, interpolation power, sensor anchor radius,
-  display range, and rendering resolution
+  40–100 dB(A) display range, and rendering resolution
+
+`measurementHeightM` documents the height of the horizontal measurement plane
+shown by the map. It appears in the dashboard heading but does not change the
+current calculation: interpolation uses only the two-dimensional `x` and `y`
+distance between map points and sensors. It would affect the calculation only
+if sensor and evaluation-point heights were added to a future three-dimensional
+distance model.
 
 After changing map geometry or assumptions, upload the `master_node/data/`
-filesystem again. A master firmware upload is unnecessary unless the API or
-firmware also changed.
+filesystem again. The new `/map-config.json` route requires one master firmware
+upload when upgrading from an earlier version; subsequent map-only changes need
+only a LittleFS data upload.
 
 ## Commissioning checks
 
@@ -256,6 +281,10 @@ firmware also changed.
 - With test inputs of 70.0 dBA and 80.0 dBA, confirm the master returns 77.4
   dBA, not 75.0 dBA.
 - Leave the complete system running for at least eight hours before deployment.
+- Confirm each sensor log produces approximately one `[LEVEL]` and one accepted
+  master reading per second, with `integration` close to 1000 ms.
+- Test Wi-Fi reliability at the final mounting position because modem sleep can
+  make a marginal radio link less tolerant of interference.
 
 ## Troubleshooting
 
