@@ -3,6 +3,8 @@
 #include <WebServer.h>
 #include <LittleFS.h>
 #include <ArduinoJson.h>
+#include <esp_err.h>
+#include <esp_wifi.h>
 #include <math.h>
 #include "config.h"
 
@@ -18,9 +20,12 @@ WebServer server(80);
 constexpr size_t MAX_NODES = 8;
 constexpr size_t CONFIGURED_NODE_COUNT = 2;
 constexpr size_t MAX_READING_BODY_BYTES = 1024;
+constexpr uint8_t WIFI_BGN_PROTOCOLS =
+  WIFI_PROTOCOL_11B | WIFI_PROTOCOL_11G | WIFI_PROTOCOL_11N;
 
 static_assert(sizeof(AP_PASSWORD) > 8, "AP password must be at least 8 characters");
 static_assert(CONFIGURED_NODE_COUNT <= MAX_NODES, "Too many configured nodes");
+static_assert(AP_CHANNEL >= 1 && AP_CHANNEL <= 11, "AP channel must be 1 through 11");
 
 struct NodeState
 {
@@ -35,6 +40,7 @@ struct NodeState
   uint32_t measuredAtMs;
   uint32_t integrationMs;
   uint32_t sampleRate;
+  int32_t wifiRSSIDBm;
   double dba;
   double dbfsA;
   double dominantFrequency;
@@ -47,11 +53,11 @@ struct NodeState
 NodeState nodes[MAX_NODES] = {
   {
     NODE_1_ID, NODE_1_NAME, false, false,
-    0, 0, 0, 0, 0, 0, 0, NAN, NAN, NAN, 0.0, 0, NAN, false
+    0, 0, 0, 0, 0, 0, 0, 0, NAN, NAN, NAN, 0.0, 0, NAN, false
   },
   {
     NODE_2_ID, NODE_2_NAME, false, false,
-    0, 0, 0, 0, 0, 0, 0, NAN, NAN, NAN, 0.0, 0, NAN, false
+    0, 0, 0, 0, 0, 0, 0, 0, NAN, NAN, NAN, 0.0, 0, NAN, false
   }
 };
 
@@ -293,6 +299,9 @@ void handleReadingPost()
   node.measuredAtMs = document["measured_at_ms"].as<uint32_t>();
   node.integrationMs = document["integration_ms"] | 0UL;
   node.sampleRate = document["sample_rate"] | 0UL;
+  const int32_t reportedRSSI = document["wifi_rssi_dbm"] | 0;
+  node.wifiRSSIDBm =
+    reportedRSSI >= -127 && reportedRSSI <= 0 ? reportedRSSI : 0;
   node.dba = dba;
   node.dbfsA = document["dbfs_a"] | NAN;
   node.dominantFrequency = document["dominant_frequency"] | NAN;
@@ -302,11 +311,12 @@ void handleReadingPost()
   xSemaphoreGive(stateMutex);
 
   Serial.printf(
-    "[READING] %s boot=%lu seq=%lu level=%.2f dBA\n",
+    "[READING] %s boot=%lu seq=%lu level=%.2f dBA rssi=%ld dBm\n",
     node.id,
     (unsigned long)bootID,
     (unsigned long)sequence,
-    dba
+    dba,
+    (long)node.wifiRSSIDBm
   );
 
   server.sendHeader("Cache-Control", "no-store");
@@ -363,6 +373,14 @@ void sendStatus()
       item["age_ms"] = now - nodes[i].receivedAtMs;
       item["sequence"] = nodes[i].sequence;
       item["boot_id"] = nodes[i].bootID;
+      if (nodes[i].wifiRSSIDBm != 0)
+      {
+        item["wifi_rssi_dbm"] = nodes[i].wifiRSSIDBm;
+      }
+      else
+      {
+        item["wifi_rssi_dbm"] = nullptr;
+      }
       if (nodes[i].contributedLastWindow)
       {
         item["window_dba"] = nodes[i].lastWindowDBA;
@@ -380,6 +398,7 @@ void sendStatus()
       item["age_ms"] = nullptr;
       item["sequence"] = 0;
       item["boot_id"] = 0;
+      item["wifi_rssi_dbm"] = nullptr;
       item["window_dba"] = nullptr;
       item["contributed"] = false;
     }
@@ -455,9 +474,25 @@ void setupAccessPoint()
     }
   }
 
-  if (!WiFi.softAP(AP_SSID, AP_PASSWORD, 1, false, AP_MAX_CONNECTIONS))
+  if (!WiFi.softAP(
+        AP_SSID, AP_PASSWORD, AP_CHANNEL, false, AP_MAX_CONNECTIONS))
   {
     Serial.println("[FATAL] Access point failed to start.");
+    while (true)
+    {
+      delay(1000);
+    }
+  }
+
+  const esp_err_t protocolResult =
+    esp_wifi_set_protocol(WIFI_IF_AP, WIFI_BGN_PROTOCOLS);
+
+  if (protocolResult != ESP_OK)
+  {
+    Serial.printf(
+      "[FATAL] Could not enable B/G/N on AP: %s\n",
+      esp_err_to_name(protocolResult)
+    );
     while (true)
     {
       delay(1000);
@@ -468,6 +503,7 @@ void setupAccessPoint()
   Serial.println("==========================================");
   Serial.println("SPD NOISE MONITOR MASTER READY");
   Serial.printf("Network   : %s\n", AP_SSID);
+  Serial.printf("Radio     : B/G/N on channel %u\n", AP_CHANNEL);
   Serial.print("Dashboard : http://");
   Serial.println(WiFi.softAPIP());
   Serial.printf("Nodes     : %s, %s\n", NODE_1_ID, NODE_2_ID);

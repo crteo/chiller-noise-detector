@@ -3,7 +3,10 @@
 #include <HTTPClient.h>
 #include <driver/i2s.h>
 #include <arduinoFFT.h>
+#include <esp32-hal-cpu.h>
+#include <esp_err.h>
 #include <esp_system.h>
+#include <esp_wifi.h>
 #include <math.h>
 #include "config.h"
 
@@ -17,8 +20,19 @@ static_assert(sizeof(NODE_ID) > 1, "NODE_ID must not be empty");
 constexpr i2s_port_t I2S_PORT = I2S_NUM_0;
 constexpr uint32_t SAMPLE_RATE = 48000;
 constexpr uint16_t FFT_SIZE = 4096;
-constexpr uint32_t REPORT_INTERVAL_MS = 1000;
+constexpr uint32_t CPU_FREQUENCY_MHZ = 160;
+constexpr uint32_t SAMPLE_WINDOW_MS = 5000;
+constexpr uint32_t REST_WINDOW_MS = 5000;
+constexpr uint32_t RSSI_LOG_INTERVAL_MS = 5000;
 constexpr float PCM_FULL_SCALE = 8388608.0f;  // 2^23
+constexpr uint8_t WIFI_BGN_PROTOCOLS =
+  WIFI_PROTOCOL_11B | WIFI_PROTOCOL_11G | WIFI_PROTOCOL_11N;
+
+static_assert(
+  SAMPLE_WINDOW_MS >= (FFT_SIZE * 1000UL) / SAMPLE_RATE,
+  "Sampling window must fit at least one complete FFT frame"
+);
+static_assert(REST_WINDOW_MS > 0, "Rest window must be greater than zero");
 
 constexpr size_t I2S_BUFFER_SIZE = 512;
 int32_t i2sBuffer[I2S_BUFFER_SIZE];
@@ -149,7 +163,19 @@ void setupI2S()
   }
 
   i2s_zero_dma_buffer(I2S_PORT);
-  Serial.println("[I2S] Initialised.");
+
+  result = i2s_stop(I2S_PORT);
+
+  if (result != ESP_OK)
+  {
+    Serial.printf("[I2S] Could not enter initial standby: %d\n", result);
+    while (true)
+    {
+      delay(1000);
+    }
+  }
+
+  Serial.println("[I2S] Initialised in standby.");
 }
 
 void publishLevelMeasurement()
@@ -279,8 +305,19 @@ void audioTask(void* parameter)
 {
   while (true)
   {
+    esp_err_t result = i2s_start(I2S_PORT);
+
+    if (result != ESP_OK)
+    {
+      Serial.printf("[AUDIO] Could not start sampling: %d\n", result);
+      vTaskDelay(pdMS_TO_TICKS(1000));
+      continue;
+    }
+
+    // The INMP441 needs about 5 ms to leave standby after SCK restarts.
+    // Discarding one 512-sample block provides about 10.7 ms of settling time.
     size_t bytesRead = 0;
-    const esp_err_t result = i2s_read(
+    result = i2s_read(
       I2S_PORT,
       i2sBuffer,
       sizeof(i2sBuffer),
@@ -290,36 +327,70 @@ void audioTask(void* parameter)
 
     if (result != ESP_OK)
     {
-      Serial.printf("[AUDIO] I2S read error: %d\n", result);
+      Serial.printf("[AUDIO] Settling read failed: %d\n", result);
+      i2s_stop(I2S_PORT);
+      vTaskDelay(pdMS_TO_TICKS(1000));
       continue;
     }
 
-    const size_t samplesReceived = bytesRead / sizeof(int32_t);
+    fftIndex = 0;
+    const uint32_t sampleWindowStartedAt = millis();
+    Serial.printf(
+      "[POWER] Sampling for %lu ms.\n",
+      (unsigned long)SAMPLE_WINDOW_MS
+    );
 
-    for (size_t i = 0; i < samplesReceived; i++)
+    while ((uint32_t)(millis() - sampleWindowStartedAt) < SAMPLE_WINDOW_MS)
     {
-      const int32_t pcm = i2sBuffer[i] >> 8;
-      vReal[fftIndex] = (float)pcm / PCM_FULL_SCALE;
-      vImag[fftIndex] = 0.0f;
-      fftIndex++;
+      bytesRead = 0;
+      result = i2s_read(
+        I2S_PORT,
+        i2sBuffer,
+        sizeof(i2sBuffer),
+        &bytesRead,
+        portMAX_DELAY
+      );
 
-      if (fftIndex >= FFT_SIZE)
+      if (result != ESP_OK)
       {
-        processFFTFrame();
-        fftIndex = 0;
+        Serial.printf("[AUDIO] I2S read error: %d\n", result);
+        continue;
+      }
+
+      const size_t samplesReceived = bytesRead / sizeof(int32_t);
+
+      for (size_t i = 0; i < samplesReceived; i++)
+      {
+        const int32_t pcm = i2sBuffer[i] >> 8;
+        vReal[fftIndex] = (float)pcm / PCM_FULL_SCALE;
+        vImag[fftIndex] = 0.0f;
+        fftIndex++;
+
+        if (fftIndex >= FFT_SIZE)
+        {
+          processFFTFrame();
+          fftIndex = 0;
+        }
       }
     }
-  }
-}
 
-void reportingTask(void* parameter)
-{
-  TickType_t nextWake = xTaskGetTickCount();
+    result = i2s_stop(I2S_PORT);
 
-  while (true)
-  {
-    vTaskDelayUntil(&nextWake, pdMS_TO_TICKS(REPORT_INTERVAL_MS));
+    if (result != ESP_OK)
+    {
+      Serial.printf("[AUDIO] Could not stop sampling: %d\n", result);
+    }
+
+    // Never combine a partial FFT from before standby with samples collected
+    // after the microphone restarts.
+    fftIndex = 0;
     publishLevelMeasurement();
+
+    Serial.printf(
+      "[POWER] Resting for %lu ms.\n",
+      (unsigned long)REST_WINDOW_MS
+    );
+    vTaskDelay(pdMS_TO_TICKS(REST_WINDOW_MS));
   }
 }
 
@@ -338,6 +409,7 @@ void networkTask(void* parameter)
   MeasurementReport report;
   uint32_t nextReconnectAt = millis() + 1000;
   uint32_t reconnectDelayMs = 1000;
+  uint32_t nextRSSILogAt = 0;
   bool wasConnected = false;
 
   while (true)
@@ -349,15 +421,32 @@ void networkTask(void* parameter)
     {
       Serial.print("[WIFI] Connected. Sensor IP: ");
       Serial.println(WiFi.localIP());
+      Serial.printf(
+        "[WIFI] RSSI=%ld dBm channel=%u\n",
+        (long)WiFi.RSSI(),
+        WiFi.channel()
+      );
       reconnectDelayMs = 1000;
+      nextRSSILogAt = now + RSSI_LOG_INTERVAL_MS;
     }
     else if (!connected && wasConnected)
     {
       Serial.println("[WIFI] Connection lost.");
       nextReconnectAt = now;
+      nextRSSILogAt = 0;
     }
 
     wasConnected = connected;
+
+    if (connected && (int32_t)(now - nextRSSILogAt) >= 0)
+    {
+      Serial.printf(
+        "[WIFI] RSSI=%ld dBm channel=%u\n",
+        (long)WiFi.RSSI(),
+        WiFi.channel()
+      );
+      nextRSSILogAt = now + RSSI_LOG_INTERVAL_MS;
+    }
 
     if (!connected && (int32_t)(now - nextReconnectAt) >= 0)
     {
@@ -405,6 +494,7 @@ void networkTask(void* parameter)
       String(report.dominantFrequency, 2);
     payload += ",\"integration_ms\":" + String(report.integrationMs);
     payload += ",\"sample_rate\":" + String(SAMPLE_RATE);
+    payload += ",\"wifi_rssi_dbm\":" + String(WiFi.RSSI());
     payload += "}";
 
     const int responseCode = http.POST(payload);
@@ -427,13 +517,33 @@ void setup()
   Serial.begin(115200);
   delay(1200);
 
+  if (!setCpuFrequencyMhz(CPU_FREQUENCY_MHZ))
+  {
+    Serial.printf(
+      "[FATAL] Could not set CPU frequency to %lu MHz.\n",
+      (unsigned long)CPU_FREQUENCY_MHZ
+    );
+    while (true)
+    {
+      delay(1000);
+    }
+  }
+
   bootID = esp_random();
   Serial.println();
   Serial.println("==========================================");
   Serial.println("SPD DISTRIBUTED NOISE SENSOR");
   Serial.printf("Node             : %s (%s)\n", NODE_NAME, NODE_ID);
   Serial.printf("Boot ID          : %lu\n", (unsigned long)bootID);
-  Serial.printf("Report interval  : %lu ms\n", (unsigned long)REPORT_INTERVAL_MS);
+  Serial.printf(
+    "CPU frequency    : %lu MHz\n",
+    (unsigned long)getCpuFrequencyMhz()
+  );
+  Serial.printf(
+    "Sampling cycle   : %lu ms on / %lu ms standby\n",
+    (unsigned long)SAMPLE_WINDOW_MS,
+    (unsigned long)REST_WINDOW_MS
+  );
   Serial.printf("Calibration      : %.2f dB\n", SENSOR_CALIBRATION_DB);
   Serial.println("==========================================");
 
@@ -451,6 +561,23 @@ void setup()
 
   WiFi.mode(WIFI_STA);
   WiFi.setSleep(true);
+
+  const esp_err_t protocolResult =
+    esp_wifi_set_protocol(WIFI_IF_STA, WIFI_BGN_PROTOCOLS);
+
+  if (protocolResult != ESP_OK)
+  {
+    Serial.printf(
+      "[FATAL] Could not enable B/G/N on station: %s\n",
+      esp_err_to_name(protocolResult)
+    );
+    while (true)
+    {
+      delay(1000);
+    }
+  }
+
+  Serial.println("[WIFI] Radio mode: B/G/N");
   beginWiFiConnection();
   setupDSPTables();
   setupI2S();
@@ -460,9 +587,6 @@ void setup()
   );
   xTaskCreatePinnedToCore(
     networkTask, "NetworkTask", 8192, nullptr, 1, nullptr, 0
-  );
-  xTaskCreatePinnedToCore(
-    reportingTask, "ReportingTask", 4096, nullptr, 1, nullptr, 0
   );
 }
 
