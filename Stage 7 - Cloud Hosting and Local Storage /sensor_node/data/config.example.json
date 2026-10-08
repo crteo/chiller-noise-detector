@@ -1,0 +1,28 @@
+{
+  "device": {
+    "id": "cwp1-2-near",
+    "name": "CWP1-2 Drive-End Near Field",
+    "role": "near"
+  },
+  "local_network": {
+    "ssid": "CWP1-2_Acoustic_Pilot",
+    "password": "replace-with-the-same-master-ap-password",
+    "master_host": "192.168.4.1"
+  },
+  "collector": {
+    "host": "192.168.4.200",
+    "port": 8080,
+    "raw_upload_enabled": true
+  },
+  "local_api": {
+    "shared_key": "replace-with-the-same-long-random-local-key"
+  },
+  "acoustics": {
+    "calibration_offset_db": 0.0
+  },
+  "pins": {
+    "i2s_bclk": 4,
+    "i2s_lrclk": 5,
+    "i2s_din": 6
+  }
+}

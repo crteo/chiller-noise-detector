@@ -1,8 +1,8 @@
 #pragma once
 
 // Change these two values before uploading the second sensor board.
-#define NODE_ID "sensor-2"
-#define NODE_NAME "Sensor 2"
+#define NODE_ID "sensor-1"
+#define NODE_NAME "Sensor 1"
 
 #define AP_SSID "SPD_Noise_Monitor"
 #define AP_PASSWORD "NoiseMonitor123"

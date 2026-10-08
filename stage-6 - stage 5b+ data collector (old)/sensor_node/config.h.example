@@ -1,0 +1,23 @@
+#pragma once
+
+// Flash the second sensor with the reference identity and role shown in README.
+#define NODE_ID "cwp1-2-near"
+#define NODE_NAME "CWP1-2 Drive-End Near Field"
+#define MEASUREMENT_ROLE "near"
+
+#define AP_SSID "CWP1-2_Acoustic_Pilot"
+#define AP_PASSWORD "replace-with-at-least-8-characters"
+#define API_KEY "replace-with-a-private-shared-key"
+#define MASTER_HOST "192.168.4.1"
+
+// Give the collector laptop a static address on the master's Wi-Fi network.
+#define COLLECTOR_HOST "192.168.4.50"
+#define COLLECTOR_PORT 8000
+#define RAW_UPLOAD_ENABLED true
+
+// Determine independently for each complete microphone/enclosure assembly.
+#define SENSOR_CALIBRATION_DB 123.01f
+
+#define SENSOR_I2S_BCLK 18
+#define SENSOR_I2S_LRCLK 16
+#define SENSOR_I2S_DIN 17

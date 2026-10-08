@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#080b0e">
+  <title>Battery Bench Monitor</title>
+  <style>
+    :root{color-scheme:dark;--bg:#080b0e;--panel:#11161bcc;--line:#ffffff1c;--text:#f3f6f8;--muted:#8f99a3;--accent:#53dda0;--warn:#ffcc66}
+    *{box-sizing:border-box}body{margin:0;min-height:100vh;color:var(--text);background:radial-gradient(circle at 15% 0,#18342c 0,transparent 34%),radial-gradient(circle at 90% 95%,#162b42 0,transparent 38%),var(--bg);font:15px system-ui,-apple-system,sans-serif}
+    main{width:min(1100px,calc(100% - 28px));margin:auto;padding:26px 0 38px}.panel{background:var(--panel);border:1px solid var(--line);border-radius:22px;box-shadow:0 22px 60px #0006;backdrop-filter:blur(18px)}
+    header{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:22px 26px}.eyebrow,.label{color:var(--muted);font-size:11px;font-weight:700;letter-spacing:.16em;text-transform:uppercase}h1{margin:4px 0 0;font-size:clamp(24px,4vw,39px);letter-spacing:-.04em}.radio{padding:8px 12px;border:1px solid #53dda055;border-radius:999px;color:var(--accent);white-space:nowrap}
+    .grid{display:grid;grid-template-columns:1.05fr 1.95fr;gap:16px;margin-top:16px}.hero,.trend,.details{padding:24px}.hero{min-height:310px;display:flex;flex-direction:column}.value{margin:auto 0;text-align:center;color:var(--accent);font-size:clamp(68px,11vw,116px);font-weight:680;letter-spacing:-.08em;line-height:.9}.unit{font-size:.22em;color:var(--muted);letter-spacing:0}.state{display:flex;gap:9px;align-items:center;color:var(--accent)}.dot{width:9px;height:9px;border-radius:50%;background:currentColor;box-shadow:0 0 14px currentColor}.sub{margin:7px 0 0 18px;color:var(--muted)}
+    .trend{min-height:310px;display:grid;grid-template-rows:auto 1fr}.trend-head{display:flex;justify-content:space-between;gap:12px}h2{margin:4px 0 0;font-size:22px}canvas{width:100%;height:220px;margin-top:12px}.details{margin-top:16px}.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:15px}.card{padding:15px;border:1px solid var(--line);border-radius:15px;background:#ffffff08}.card strong{display:block;margin-top:7px;font-size:18px;font-variant-numeric:tabular-nums}.foot{margin-top:15px;color:var(--muted);font-size:12px}.offline .dot{color:#ff6b6b}.offline .state{color:#ff6b6b}
+    @media(max-width:760px){.grid{grid-template-columns:1fr}.cards{grid-template-columns:repeat(2,1fr)}header{align-items:flex-start}.radio{font-size:12px}}
+  </style>
+</head>
+<body>
+<main>
+  <header class="panel"><div><div class="eyebrow">Local acoustic endurance test</div><h1>Battery Bench Monitor</h1></div><div class="radio">Wi-Fi channel <strong id="channel">11</strong></div></header>
+  <section class="grid">
+    <article class="hero panel"><div class="label">Latest estimated level</div><div class="value"><span id="level">--.-</span> <span class="unit">dB(A)*</span></div><div id="connection"><div class="state"><span class="dot"></span><strong id="state">Waiting for sensor</strong></div><p id="age" class="sub">No measurement received yet</p></div></article>
+    <article class="trend panel"><div class="trend-head"><div><div class="label">Measurements seen by this browser</div><h2>Level history</h2></div><div id="count">0 accepted</div></div><canvas id="chart"></canvas></article>
+  </section>
+  <section class="details panel"><div class="label">Latest transmission</div><div class="cards">
+    <div class="card"><span class="label">Node</span><strong id="node">—</strong></div>
+    <div class="card"><span class="label">Power</span><strong id="power">—</strong></div>
+    <div class="card"><span class="label">Sequence</span><strong id="sequence">—</strong></div>
+    <div class="card"><span class="label">RSSI</span><strong id="rssi">—</strong></div>
+    <div class="card"><span class="label">A-weighted</span><strong id="rms">—</strong></div>
+    <div class="card"><span class="label">Peak</span><strong id="peak">—</strong></div>
+    <div class="card"><span class="label">Integration</span><strong id="capture">—</strong></div>
+    <div class="card"><span class="label">FFT frames</span><strong id="frames">—</strong></div>
+    <div class="card"><span class="label">Dominant frequency</span><strong id="dominant">—</strong></div>
+    <div class="card"><span class="label">Awake</span><strong id="awake">—</strong></div>
+  </div><div class="foot">* estimated dB(A) uses the Stage 5b Hann-windowed FFT, A-weighting curve and configured calibration offset. It remains prototype instrumentation unless validated against a trusted sound-level reference. This page and API are served entirely by the master at 192.168.4.1; no internet or cloud service is used.</div></section>
+</main>
+<script>
+"use strict";
+const $=id=>document.getElementById(id),points=[];let lastSequence=null,masterOk=false;
+function number(value,digits=1){const n=Number(value);return Number.isFinite(n)?n.toFixed(digits):"—"}
+function age(ms){const s=Math.max(0,Math.round(Number(ms)/1000));if(s<60)return`${s} s ago`;if(s<3600)return`${Math.floor(s/60)} min ${s%60} s ago`;return`${Math.floor(s/3600)} h ${Math.floor(s%3600/60)} min ago`}
+function draw(){const canvas=$("chart"),rect=canvas.getBoundingClientRect(),d=Math.max(1,devicePixelRatio||1);canvas.width=Math.round(rect.width*d);canvas.height=Math.round(rect.height*d);const x=canvas.getContext("2d");x.scale(d,d);const w=rect.width,h=rect.height,p={l:42,r:10,t:12,b:25};x.clearRect(0,0,w,h);if(!points.length){x.fillStyle="#8f99a3";x.textAlign="center";x.fillText("History begins when the first measurement arrives",w/2,h/2);return}let lo=Math.floor((Math.min(...points)-3)/5)*5,hi=Math.ceil((Math.max(...points)+3)/5)*5;if(hi-lo<10)hi=lo+10;for(let i=0;i<=4;i++){const y=p.t+(h-p.t-p.b)*i/4;x.strokeStyle="#ffffff14";x.beginPath();x.moveTo(p.l,y);x.lineTo(w-p.r,y);x.stroke();x.fillStyle="#8f99a3";x.textAlign="right";x.fillText((hi-(hi-lo)*i/4).toFixed(0),p.l-7,y+4)}x.strokeStyle="#53dda0";x.lineWidth=2.5;x.lineJoin="round";x.beginPath();points.forEach((v,i)=>{const px=p.l+(w-p.l-p.r)*(points.length===1?1:i/(points.length-1)),py=p.t+(h-p.t-p.b)*(hi-v)/(hi-lo);i?x.lineTo(px,py):x.moveTo(px,py)});x.stroke();x.fillStyle="#8f99a3";x.textAlign="left";x.fillText("Earlier",p.l,h-5);x.textAlign="right";x.fillText("Now",w-p.r,h-5)}
+function render(data){masterOk=true;$("channel").textContent=data.channel;$("count").textContent=`${data.accepted_measurements} accepted`;if(!data.has_measurement)return;const seq=Number(data.sequence),level=Number(data.estimated_dba);if(seq!==lastSequence&&Number.isFinite(level)){lastSequence=seq;points.push(level);while(points.length>72)points.shift();draw()}$("level").textContent=number(level);$("node").textContent=data.node_id||"—";$("power").textContent=data.power_source||"—";$("sequence").textContent=data.sequence;$("rssi").textContent=`${data.wifi_rssi_dbm} dBm`;$("rms").textContent=`${number(data.a_weighted_dbfs)} dBFS`;$("peak").textContent=`${number(data.peak_dbfs)} dBFS`;$("capture").textContent=`${data.integration_ms} ms`;$("frames").textContent=data.fft_frames;$("dominant").textContent=`${number(data.dominant_frequency_hz,0)} Hz`;$("awake").textContent=`${data.awake_ms} ms`;const overdue=Number(data.age_ms)>900000;$("state").textContent=overdue?"Sensor report overdue":"Sensor sleeping normally";$("age").textContent=`Last report ${age(data.age_ms)}`;$("connection").classList.toggle("offline",overdue)}
+async function poll(){try{const response=await fetch("/status",{cache:"no-store"});if(!response.ok)throw Error(response.status);render(await response.json())}catch(error){masterOk=false;$("state").textContent="Master connection lost";$("age").textContent="Reconnect to the BatteryBench access point";$("connection").classList.add("offline")}}
+addEventListener("resize",draw);poll();setInterval(poll,2000);
+</script>
+</body>
+</html>

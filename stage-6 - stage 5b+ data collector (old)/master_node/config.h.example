@@ -1,0 +1,17 @@
+#pragma once
+
+#define AP_SSID "CWP1-2_Acoustic_Pilot"
+#define AP_PASSWORD "replace-with-at-least-8-characters"
+#define API_KEY "replace-with-a-private-shared-key"
+
+#define NEAR_NODE_ID "cwp1-2-near"
+#define NEAR_NODE_NAME "CWP1-2 Drive-End Near Field"
+#define REFERENCE_NODE_ID "cwp1-2-reference"
+#define REFERENCE_NODE_NAME "CWP1-2 Background Reference"
+
+#define CAPTURE_INTERVAL_MS 60000UL
+#define CAPTURE_DURATION_MS 10000UL
+#define FIRST_CAPTURE_DELAY_MS 15000UL
+#define SENSOR_STALE_MS 180000UL
+#define AP_CHANNEL 1
+#define AP_MAX_CONNECTIONS 6

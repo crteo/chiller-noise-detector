@@ -1,0 +1,13 @@
+{
+  "firebase": {
+    "apiKey": "replace-with-firebase-web-api-key",
+    "authDomain": "replace-with-project-id.firebaseapp.com",
+    "projectId": "replace-with-project-id",
+    "storageBucket": "replace-with-project-id.firebasestorage.app",
+    "messagingSenderId": "replace-with-sender-id",
+    "appId": "replace-with-web-app-id"
+  },
+  "assetId": "cwp1-2",
+  "displayName": "CWP1-2 Acoustic Pilot",
+  "captureLimit": 50
+}

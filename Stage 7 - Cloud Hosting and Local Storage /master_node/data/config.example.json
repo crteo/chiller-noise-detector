@@ -1,0 +1,27 @@
+{
+  "device": {"id": "cwp1-2-master"},
+  "local_ap": {
+    "ssid": "CWP1-2_Acoustic_Pilot",
+    "password": "replace-with-at-least-8-characters",
+    "channel": 1,
+    "max_connections": 6
+  },
+  "upstream_wifi": {
+    "enabled": true,
+    "ssid": "replace-with-internet-wifi-ssid",
+    "password": "replace-with-internet-wifi-password",
+    "ntp_server_1": "pool.ntp.org",
+    "ntp_server_2": "time.google.com"
+  },
+  "local_api": {"shared_key": "replace-with-a-long-random-local-key"},
+  "capture": {
+    "interval_ms": 300000,
+    "duration_ms": 10000,
+    "first_capture_delay_ms": 20000,
+    "sensor_stale_ms": 600000
+  },
+  "nodes": [
+    {"id": "cwp1-2-near", "name": "CWP1-2 Drive-End Near Field", "role": "near"},
+    {"id": "cwp1-2-reference", "name": "CWP1-2 Background Reference", "role": "reference"}
+  ]
+}

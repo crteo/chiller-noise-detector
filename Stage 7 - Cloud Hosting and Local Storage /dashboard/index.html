@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>Stage 7 Acoustic Monitor</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <div><span class="eyebrow">STAGE 7</span><h1 id="title">Acoustic Monitor</h1></div>
+    <div class="auth"><span id="identity">Signed out</span><button id="signin">Sign in with Google</button><button id="signout" class="ghost" hidden>Sign out</button></div>
+  </header>
+  <main>
+    <section id="notice" class="notice">Load the dashboard configuration to begin.</section>
+    <section id="content" hidden>
+      <div class="top-grid">
+        <article class="panel"><h2>System</h2><div id="system"></div></article>
+        <article class="panel"><h2>Latest comparison</h2><div id="comparison" class="metric">Waiting for a matched capture</div></article>
+      </div>
+      <article class="panel">
+        <div class="panel-head"><div><h2>Spectrum</h2><p id="selected-label">Select a capture below</p></div><div class="legend"><span class="near">Near</span><span class="reference">Reference</span></div></div>
+        <canvas id="spectrum" width="1000" height="360" aria-label="Sound spectrum plot"></canvas>
+        <div id="audio" class="audio-grid"></div>
+      </article>
+      <article class="panel">
+        <div class="panel-head"><div><h2>Recent captures</h2><p>Times are shown in your browser's local timezone.</p></div><button id="refresh" class="ghost">Refresh</button></div>
+        <div class="table-wrap"><table><thead><tr><th>Time</th><th>Capture</th><th>Near RMS</th><th>Reference RMS</th><th>Difference</th><th>Cloud audio</th></tr></thead><tbody id="captures"></tbody></table></div>
+      </article>
+    </section>
+  </main>
+  <script type="module" src="app.js"></script>
+</body>
+</html>

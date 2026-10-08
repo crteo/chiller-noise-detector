@@ -1,0 +1,18 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function signedInAndAuthorized() {
+      return request.auth != null
+        && firestore.exists(/databases/(default)/documents/authorized_users/$(request.auth.uid));
+    }
+
+    match /assets/{assetId}/{allPaths=**} {
+      allow read: if signedInAndAuthorized();
+      allow write: if false;
+    }
+
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

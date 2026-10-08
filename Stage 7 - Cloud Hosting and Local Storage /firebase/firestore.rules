@@ -1,0 +1,29 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedInAndAuthorized() {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/authorized_users/$(request.auth.uid));
+    }
+
+    // The browser dashboard is read-only. The Admin SDK used by the local
+    // collector bypasses these client rules and is the only data writer.
+    match /assets/{assetId} {
+      allow read: if signedInAndAuthorized();
+      allow write: if false;
+
+      match /{document=**} {
+        allow read: if signedInAndAuthorized();
+        allow write: if false;
+      }
+    }
+
+    match /authorized_users/{uid} {
+      allow read, write: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

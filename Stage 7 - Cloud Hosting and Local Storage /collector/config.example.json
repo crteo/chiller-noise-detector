@@ -1,0 +1,35 @@
+{
+  "pilot": {
+    "asset_id": "cwp1-2",
+    "timezone": "Asia/Singapore"
+  },
+  "server": {
+    "bind_host": "0.0.0.0",
+    "port": 8080,
+    "shared_key": "replace-with-the-same-long-random-local-key",
+    "max_upload_bytes": 3000000
+  },
+  "master": {
+    "base_url": "http://192.168.4.1",
+    "poll_seconds": 15,
+    "request_timeout_seconds": 4,
+    "sync_clock": true
+  },
+  "local_storage": {
+    "root": "./local-data",
+    "database": "./local-data/collector.db"
+  },
+  "analysis": {
+    "minimum_hz": 60,
+    "maximum_hz": 15000,
+    "spectrum_points": 256
+  },
+  "firebase": {
+    "enabled": false,
+    "service_account_file": "./service-account.json",
+    "storage_bucket": "replace-with-project-id.firebasestorage.app",
+    "upload_preview_audio": true,
+    "upload_raw_audio": false,
+    "retry_seconds": 60
+  }
+}
